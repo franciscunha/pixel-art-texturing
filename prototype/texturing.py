@@ -13,7 +13,14 @@ def visualizeMask(mask, original_shape):
     return vis_mask
 
 
-def placeRandomPatternsWithinBoundary(destination: cv2.Mat, pattern: cv2.Mat, boundary: cv2.Mat, pattern_padding=0, num_patterns=20, max_attempts=1000):
+def placeRandomPatternsWithinBoundary(
+        destination: cv2.Mat,
+        pattern: cv2.Mat,
+        boundary: cv2.Mat,
+        pattern_padding=0,
+        num_patterns=20,
+        max_attempts=1000,
+        hsv_shift: tuple[int, int, int] | None = None):
     """
     Place random patterns within the boundary using a mask to track available space.
 
@@ -21,6 +28,7 @@ def placeRandomPatternsWithinBoundary(destination: cv2.Mat, pattern: cv2.Mat, bo
         destination: The destination image where patterns will be placed
         pattern: The pattern to place
         boundary_img: The image defining the boundary
+        pattern_padding: Space between any two placed patterns, in pixels
         num_patterns: Number of patterns to try to place
         max_attempts: Maximum attempts to find valid positions
 
@@ -69,7 +77,7 @@ def placeRandomPatternsWithinBoundary(destination: cv2.Mat, pattern: cv2.Mat, bo
             continue
 
         # Place the pattern
-        success = placePattern(result, pattern, x0, y0)
+        success = placePattern(result, pattern, x0, y0, hsv_shift)
 
         if not success:
             continue
@@ -98,16 +106,68 @@ def showScaled(title: str, img: cv2.Mat, factor: int):
     cv2.imshow(title, scaled)
 
 
-def placePattern(destination: cv2.Mat, pattern: cv2.Mat, x: int, y: int):
+def getSimilarColor(base: cv2.Mat, rect: tuple[int, int, int, int], hsv_shift: tuple[int, int, int]):
+    """
+    Gets the average color of a region of an image, then shifts it.
+
+    Args:
+        base: Image to extract color from
+        rect: Boundaries of image region, layout is x y w h
+        hsv_shift: How much to shift the color by, in HSV color space
+
+    Returns: The average color, shifted, in BGR color space
+    """
+    x, y, w, h = rect
+    # Get the region of interest and its average color
+    roi_per_channel = [base[y: y + h, x: x + w, i] for i in range(4)]
+    mean_color_bgr = [int(np.round(np.mean(roi_per_channel[i])))
+                      for i in range(4)]
+
+    # Convert BGR to HSV
+    mean_color_hsv = cv2.cvtColor(
+        np.uint8([[mean_color_bgr]]), cv2.COLOR_BGR2HSV)[0][0]
+
+    # Apply the shift converting to int32 to allow for negative values in parameter
+    shifted_hsv = \
+        mean_color_hsv.astype(np.int32) + np.array(hsv_shift, dtype=np.int32)
+
+    # Wrap around H channel
+    shifted_hsv[0] = shifted_hsv[0] % 180
+
+    # Clip S and V channels to valid range
+    shifted_hsv[1] = np.clip(shifted_hsv[1], 0, 255)
+    shifted_hsv[2] = np.clip(shifted_hsv[2], 0, 255)
+
+    # Convert back to uint8 for OpenCV
+    shifted_hsv_uint8 = shifted_hsv.astype(np.uint8)
+
+    # Conversions are for images, so we use single pixel images for the conversions
+    # Extract that pixel's color to return
+    shifted_color_bgr = cv2.cvtColor(
+        np.uint8([[shifted_hsv_uint8]]), cv2.COLOR_HSV2BGR)[0][0]
+
+    return shifted_color_bgr
+
+
+def monochromizeImage(img: cv2.Mat, color: np.ndarray):
+    if color.shape != (3,):
+        raise ValueError(f"{color} is not a color")
+    img[:, :, :3] = color
+
+
+def placePattern(destination: cv2.Mat, pattern: cv2.Mat, x: int, y: int, hsv_shift: tuple[int, int, int] | None = None):
     # Boundary check
     h, w = pattern.shape[:2]
     if y + h > destination.shape[0] or x + w > destination.shape[1]:
-        # TODO better handling
         return False
 
     # Extract alpha
     pattern_alpha = pattern[:, :, 3] / 255.0
-    pattern_bgr = pattern[:, :, :3]  # note the numpy notation
+    if hsv_shift is not None:
+        color = getSimilarColor(destination, (x, y, w, h), hsv_shift)
+        monochromizeImage(pattern, color)
+
+    # TODO pattern should inherit base's alpha in final placement
 
     # Placing
     region_of_interest = destination[y: y + h, x: x + w, :3]
@@ -115,7 +175,7 @@ def placePattern(destination: cv2.Mat, pattern: cv2.Mat, x: int, y: int):
         # implicit double for loop due to numpy
         destination[y: y + h, x: x + w, c] = \
             (1 - pattern_alpha) * region_of_interest[:, :, c] \
-            + pattern_alpha * pattern_bgr[:, :, c]
+            + pattern_alpha * pattern[:, :, c]
 
     return True
 
@@ -128,10 +188,13 @@ def main():
     if shape is None or pattern is None or boundary is None:
         raise FileNotFoundError()
 
-    result = placeRandomPatternsWithinBoundary(shape, pattern, boundary, 1, 30)
-
     showScaled("Shape", shape, 8)
-    showScaled("Pattern", pattern, 16)
+    # If this comes after a call to placePattern with hsv_shift, it'll just look like a square
+    showScaled("Pattern", pattern, 64)
+
+    result = placeRandomPatternsWithinBoundary(
+        shape, pattern, boundary, 1, 30, hsv_shift=(0, 0, -50))
+
     showScaled("Result", result, 8)
     cv2.waitKey(0)
 
