@@ -181,22 +181,25 @@ def placePattern(destination: cv2.Mat, pattern: cv2.Mat, x: int, y: int, hsv_shi
 
 
 def main():
-    shape = cv2.imread("data/tree_shape.png", cv2.IMREAD_UNCHANGED)
-    pattern = cv2.imread("data/leaf_pattern.png", cv2.IMREAD_UNCHANGED)
-    boundary = cv2.imread("data/tree_boundary.png", cv2.IMREAD_UNCHANGED)
+    shape = cv2.imread("data/shaded_tree.png", cv2.IMREAD_UNCHANGED)
+    pattern = cv2.imread(f"data/leaf2_pattern.png", cv2.IMREAD_UNCHANGED)
+    boundary = cv2.imread(
+        f"data/shaded_tree_canopy_full_boundary.png", cv2.IMREAD_UNCHANGED)
 
     if shape is None or pattern is None or boundary is None:
         raise FileNotFoundError()
 
-    showScaled("Shape", shape, 8)
+    showScaled("Input", shape, 4)
     # If this comes after a call to placePattern with hsv_shift, it'll just look like a square
     showScaled("Pattern", pattern, 64)
 
     result = placeRandomPatternsWithinBoundary(
-        shape, pattern, boundary, 1, 30, hsv_shift=(0, 0, -50))
+        shape, pattern, boundary, 2, 60, hsv_shift=(0, 0, 30))
 
-    showScaled("Result", result, 8)
+    showScaled("Output", result, 4)
+
     cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
