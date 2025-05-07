@@ -2,10 +2,6 @@ import cv2
 import numpy as np
 
 
-def parseCurve(points: list[np.array]):
-    pass
-
-
 # Written by Claude
 def drawGrid(cell_size, grid_height, grid_width, background_color=(255, 255, 255), line_color=(0, 0, 0), line_thickness=1):
     # Calculate the pixel dimensions
@@ -81,21 +77,22 @@ def drawOnImage(img: cv2.Mat, scale: int):
     window_name = 'Annotation'
     cv2.namedWindow(window_name)
 
-    # Mouse callback function
+    curves = []
     points = []
+
+    # Mouse callback function
 
     def callback(event, x, y, flags, _param):
         if event == cv2.EVENT_LBUTTONDOWN:
-            points.append((x, y))
+            points.append(np.array((x, y)))
         elif event == cv2.EVENT_MOUSEMOVE and flags == cv2.EVENT_FLAG_LBUTTON:
-            points.append((x, y))
+            points.append(np.array((x, y)))
             cv2.line(img, points[-2], points[-1], (255, 0, 0), 5)
         elif event == cv2.EVENT_LBUTTONUP:
             if len(points) > 1:
-                drawArrow(img, np.array(points[-2]),
-                          np.array(points[-1]), (255, 0, 0))
+                drawArrow(img, points[-2], points[-1], (255, 0, 0))
+                curves.append(np.array(points))
             points.clear()
-            # At this point, we can create a vector
 
     # Bind the callback function to window
     cv2.setMouseCallback(window_name, callback)
@@ -106,6 +103,50 @@ def drawOnImage(img: cv2.Mat, scale: int):
         if cv2.waitKey(20) == 27:
             break
 
+    return curves
+
+
+def parseCurve(points: np.array):
+    influences = {}
+    for i in range(len(points) - 1):
+        vec = points[i+1] - points[i]
+        vec = vec / np.linalg.norm(vec)
+
+        key = (points[i][0], points[i][1])
+
+        if key not in influences:
+            influences[key] = []
+        influences[key].append(vec)
+
+    return influences
+
+
+def avgVector(vectors: list[np.array]):
+    sum_vec = np.array((0, 0), dtype=np.float64)
+    for vector in vectors:
+        sum_vec += vector
+    return sum_vec / len(vectors)
+
+
+def parseCurves(curves: list[np.array], img_h: int, img_w: int):
+    all_influences = {}
+
+    for curve in curves:
+        curve_influences = parseCurve(curve)
+
+        for point, vectors in curve_influences.items():
+            if point in all_influences:
+                all_influences[point] = all_influences[point] + vectors
+            else:
+                all_influences[point] = vectors
+
+    # At each point, take the average of all influences
+    influences = np.zeros((img_h, img_w, 2), dtype=np.float64)
+    for point, vectors in all_influences.items():
+        influences[point[0], point[1]] = avgVector(vectors)
+
+    return influences
+
 
 def main():
     # shape = cv2.imread("data/shaded_tree.png", cv2.IMREAD_UNCHANGED)
@@ -113,43 +154,14 @@ def main():
     # if shape is None:
     #     raise FileNotFoundError()
 
-    # canvas = np.zeros((64, 64, 3), np.uint8)
+    canvas = np.zeros((16, 16, 3), np.uint8)
 
-    # drawOnImage(canvas, 8)
+    curves = drawOnImage(canvas, 8)
+    influences = parseCurves(curves, 16*8, 16*8)
 
-    # Create empty array of shape (16, 16, 2)
-    sparse_vectors = np.zeros((16, 16, 2))
+    vector_field_img = visualizeVectorField(influences)
 
-    # Hardcoded positions for non-zero vectors
-    # Each entry is a tuple of (row, column, vector)
-    # where vector is already normalized
-    vector_positions = [
-        # Normalized vector pointing up-right
-        (1, 3, np.array([0.6, 0.8])),
-        (2, 7, np.array([0.0, 1.0])),         # Normalized vector pointing up
-        # Normalized vector pointing right
-        (4, 12, np.array([1.0, 0.0])),
-        # Normalized vector pointing down-right (45 degrees)
-        (5, 5, np.array([0.7071, -0.7071])),
-        # Normalized vector pointing down-left
-        (6, 2, np.array([-0.5, -0.866])),
-        (7, 8, np.array([-1.0, 0.0])),        # Normalized vector pointing left
-        # Normalized vector (approximately)
-        (9, 10, np.array([0.9487, 0.3162])),
-        # Normalized vector (approximately)
-        (11, 1, np.array([0.2425, 0.9701])),
-        # Normalized vector (approximately)
-        (12, 12, np.array([-0.9636, 0.2673])),
-        # Normalized vector (approximately)
-        (14, 9, np.array([-0.3015, -0.9535]))
-    ]
-
-    # Place the vectors at specified positions
-    for row, col, vector in vector_positions:
-        sparse_vectors[row, col] = vector
-
-    img = visualizeVectorField(sparse_vectors)
-    cv2.imshow("Vec field", img)
+    cv2.imshow("Vector field", vector_field_img)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
