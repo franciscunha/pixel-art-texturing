@@ -123,9 +123,13 @@ def parseCurve(points: np.array):
 
 def avgVector(vectors: list[np.array]):
     sum_vec = np.array((0, 0), dtype=np.float64)
+    count = 0
     for vector in vectors:
+        if vector.all() == 0:
+            continue
         sum_vec += vector
-    return sum_vec / len(vectors)
+        count += 1
+    return sum_vec / count if count != 0 else sum_vec
 
 
 def parseCurves(curves: list[np.array], img_h: int, img_w: int):
@@ -148,16 +152,40 @@ def parseCurves(curves: list[np.array], img_h: int, img_w: int):
     return influences
 
 
+def compressVectorField(vector_field: np.array, window_size: tuple[int, int]):
+    window_h, window_w = window_size
+    h, w, _ = vector_field.shape
+
+    if h % window_h != 0 or w % window_w != 0:
+        raise ValueError(
+            "Vector field resolution must be evenly divisible by the window size")
+
+    compressed = np.zeros((int(h / window_h), int(w / window_w), 2))
+
+    for x in range(0, w, window_w):
+        for y in range(0, h, window_h):
+            window = vector_field[y:y+window_h, x:x+window_w, :]
+            vec = avgVector(window.reshape(window_h * window_w, 2))
+            compressed[int(y/window_h), int(x/window_w)] = vec
+
+    return compressed
+
+
 def main():
     # shape = cv2.imread("data/shaded_tree.png", cv2.IMREAD_UNCHANGED)
 
     # if shape is None:
     #     raise FileNotFoundError()
 
-    canvas = np.zeros((16, 16, 3), np.uint8)
+    shape = (32, 32)
+    scale = 8
 
-    curves = drawOnImage(canvas, 8)
-    influences = parseCurves(curves, 16*8, 16*8)
+    canvas = np.zeros((shape[0], shape[1], 3), np.uint8)
+
+    curves = drawOnImage(canvas, scale)
+    influences = compressVectorField(
+        parseCurves(curves, shape[0]*scale, shape[1]*scale), (scale, scale)
+    )
 
     vector_field_img = visualizeVectorField(influences)
 
