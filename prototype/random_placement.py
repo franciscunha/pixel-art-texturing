@@ -44,7 +44,7 @@ def placeRandomSingularPatternWithinBoundary(
 
     # Find all valid starting positions initially (for faster random selection)
     valid_y, valid_x = np.where(availability_mask)
-    valid_positions = list(zip(valid_x, valid_y))
+    valid_positions = list(zip(valid_y, valid_x))
 
     if not valid_positions:
         print("No valid positions found in boundary")
@@ -58,8 +58,8 @@ def placeRandomSingularPatternWithinBoundary(
 
         # Pick a random valid position
         position_idx = random.randrange(len(valid_positions))
-        x0, y0 = valid_positions[position_idx]
-        x1, y1 = x0 + pattern_width, y0 + pattern_height
+        y0, x0 = valid_positions[position_idx]
+        y1, x1 = y0 + pattern_height, x0 + pattern_width
 
         # Check if the pattern would fit at this position
         if (y1 > height or x1 > width):
@@ -77,7 +77,7 @@ def placeRandomSingularPatternWithinBoundary(
             continue
 
         # Place the pattern
-        success = placePattern(result, pattern, x0, y0, hsv_shift)
+        success = placePattern(result, pattern, y0, x0, hsv_shift)
 
         if not success:
             continue
@@ -90,10 +90,10 @@ def placeRandomSingularPatternWithinBoundary(
         availability_mask[padded_y0:padded_y1, padded_x0:padded_x1] = False
 
         # Update valid positions list to remove positions that are no longer valid
-        valid_positions = [(x, y)
-                           for x, y in valid_positions if availability_mask[y, x]]
+        valid_positions = [(y, x)
+                           for y, x in valid_positions if availability_mask[y, x]]
 
-        print(f"Placed pattern {patterns_placed} at ({x0}, {y0})")
+        print(f"Placed pattern {patterns_placed} at ({y0}, {x0})")
 
     print(
         f"Placed {patterns_placed} patterns out of {num_patterns} requested (in {attempts} attempts)")
@@ -117,7 +117,7 @@ def getSimilarColor(base: cv2.Mat, rect: tuple[int, int, int, int], hsv_shift: t
 
     Returns: The average color, shifted, in BGR color space
     """
-    x, y, w, h = rect
+    y, x, h, w = rect
     # Get the region of interest and its average color
     roi_per_channel = [base[y: y + h, x: x + w, i] for i in range(4)]
     mean_color_bgr = [int(np.round(np.mean(roi_per_channel[i])))
@@ -155,7 +155,7 @@ def monochromizeImage(img: cv2.Mat, color: np.ndarray):
     img[:, :, :3] = color
 
 
-def placePattern(destination: cv2.Mat, pattern: cv2.Mat, x: int, y: int, hsv_shift: tuple[int, int, int] | None = None):
+def placePattern(destination: cv2.Mat, pattern: cv2.Mat, y: int, x: int, hsv_shift: tuple[int, int, int] | None = None):
     # Boundary check
     h, w = pattern.shape[:2]
     if y + h > destination.shape[0] or x + w > destination.shape[1]:
@@ -164,7 +164,7 @@ def placePattern(destination: cv2.Mat, pattern: cv2.Mat, x: int, y: int, hsv_shi
     # Extract alpha
     pattern_alpha = pattern[:, :, 3] / 255.0
     if hsv_shift is not None:
-        color = getSimilarColor(destination, (x, y, w, h), hsv_shift)
+        color = getSimilarColor(destination, (y, x, h, w), hsv_shift)
         monochromizeImage(pattern, color)
 
     # TODO pattern should inherit base's alpha in final placement

@@ -6,8 +6,6 @@ from annotations import areaVector, compressVectorField, drawOnImage, parseCurve
 from random_placement import placePattern, showScaled
 
 
-# TODO deal with direction of region being 0
-
 def findClosestDirection(dir: np.array):
     possible_dirs = [np.array([-0.7071, -0.7071]), np.array([-1, 0]), np.array([-0.7071, +0.7071]),
                      np.array([0, -1]), np.array([0, 1]),
@@ -59,7 +57,7 @@ def placePatternsWithinBoundary(
 
     result = destination.copy()
     boundary_height, boundary_width = boundary.shape[:2]
-    dir_w, dir_h, pattern_height, pattern_width, _ = patterns.shape
+    dir_h, dir_w, pattern_height, pattern_width, _ = patterns.shape
 
     if dir_w != 3 or dir_h != 3:
         raise ValueError("Patterns should be within a 3x3 matrix")
@@ -70,7 +68,7 @@ def placePatternsWithinBoundary(
 
     # Find all valid starting positions initially (for faster random selection)
     valid_y, valid_x = np.where(availability_mask)
-    valid_positions = list(zip(valid_x, valid_y))
+    valid_positions = list(zip(valid_y, valid_x))
 
     if not valid_positions:
         print("No valid positions found in boundary")
@@ -84,8 +82,8 @@ def placePatternsWithinBoundary(
 
         # Pick a random valid position
         position_idx = random.randrange(len(valid_positions))
-        x0, y0 = valid_positions[position_idx]
-        x1, y1 = x0 + pattern_width, y0 + pattern_height
+        y0, x0 = valid_positions[position_idx]
+        y1, x1 = y0 + pattern_height, x0 + pattern_width
 
         # Check if the pattern would fit at this position
         if (y1 > boundary_height or x1 > boundary_width):
@@ -104,18 +102,18 @@ def placePatternsWithinBoundary(
 
         # Find the direction of that area
         area_dir =\
-            areaVector(vector_field, (x0, y0, pattern_width, pattern_height))
+            areaVector(vector_field, (y0, x0, pattern_width, pattern_height))
 
         # Choose appropriate pattern according to direction
-        pattern_dir_x, pattern_dir_y = findClosestDirection(area_dir)
-        pattern = patterns[pattern_dir_x+1, pattern_dir_y+1]
+        pattern_dir_y, pattern_dir_x = findClosestDirection(area_dir)
+        pattern = patterns[pattern_dir_y+1, pattern_dir_x+1]
 
         # Ignore placements without a direction
-        if pattern_dir_x == 0 and pattern_dir_y == 0:
+        if pattern_dir_y == 0 and pattern_dir_x == 0:
             continue
 
         # Place the pattern
-        success = placePattern(result, pattern, x0, y0, hsv_shift)
+        success = placePattern(result, pattern, y0, x0, hsv_shift)
 
         if not success:
             continue
@@ -128,8 +126,8 @@ def placePatternsWithinBoundary(
         availability_mask[padded_y0:padded_y1, padded_x0:padded_x1] = False
 
         # Update valid positions list to remove positions that are no longer valid
-        valid_positions = [(x, y)
-                           for x, y in valid_positions if availability_mask[y, x]]
+        valid_positions = [(y, x)
+                           for y, x in valid_positions if availability_mask[y, x]]
 
         # print(f"Placed pattern #{patterns_placed} direction {(pattern_dir_x, pattern_dir_y)} at ({x0}, {y0})")
 
@@ -146,7 +144,7 @@ def splitOrientedSpritesheet(img: cv2.Mat):
     for j in range(-1, 2):
         for i in range(-1, 2):
             y, x = (j+1) * h, (i+1) * w
-            sprites[i+1, j+1, :, :, :] = img[y:y+h, x:x+w, :]
+            sprites[j+1, i+1, :, :, :] = img[y:y+h, x:x+w, :]
 
     return sprites
 

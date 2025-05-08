@@ -28,6 +28,10 @@ def drawGrid(cell_size, grid_height, grid_width, background_color=(255, 255, 255
 
 
 def visualizeVectorField(vec_field: np.array):
+    """
+    Visualize a vector field. The input array should have shape (h, w, 2),
+    where vec_field[y, x] contains the (dx, dy) vector at position (x, y).
+    """
     h, w, vec_shape = vec_field.shape
     if vec_shape != 2:
         raise ValueError("Expected shape (h, w, 2)")
@@ -39,14 +43,23 @@ def visualizeVectorField(vec_field: np.array):
 
     for y in range(h):
         for x in range(w):
-            vec = vec_field[y, x]
+            vec = vec_field[y, x]  # This is (dx, dy)
 
-            if vec.all() == 0:
+            if np.all(vec == 0):
                 continue
 
-            start = np.array([(y * cell_size) + center_offset,
-                              (x * cell_size) + center_offset], dtype=np.uint16)
-            end = np.array((vec * center_offset) + start, dtype=np.uint16)
+            # Convert grid position to pixel coordinates (x,y format for OpenCV)
+            start = np.array([
+                (x * cell_size) + center_offset,  # x coordinate
+                (y * cell_size) + center_offset   # y coordinate
+            ], dtype=np.float64)
+
+            # The vector is in (dx, dy) format, which matches OpenCV's (x,y) expectation
+            # Scale the vector and add to start to get the end point
+            end = np.array([
+                start[0] + vec[0] * center_offset,
+                start[1] + vec[1] * center_offset
+            ], dtype=np.float64)
 
             drawArrow(img, start, end, (255, 0, 0), 3)
 
@@ -54,10 +67,18 @@ def visualizeVectorField(vec_field: np.array):
 
 
 def drawArrow(img: cv2.Mat, start: np.array, end: np.array, color: np.array, size=5):
+    """
+    Draw an arrow from start to end on the image.
+    start and end should be in (x,y) format for OpenCV compatibility.
+    """
     if start.shape != (2,) or end.shape != (2,):
         raise ValueError("Wrong input shape")
 
-    cv2.line(img, start, end, color, size)
+    # OpenCV expects points as (x,y) tuples
+    start_point = (int(start[0]), int(start[1]))
+    end_point = (int(end[0]), int(end[1]))
+
+    cv2.line(img, start_point, end_point, color, size)
 
     # Get points that form triangle's tip
     front_dir = ((end - start) / np.linalg.norm(end - start))
@@ -107,25 +128,42 @@ def drawOnImage(img: cv2.Mat, scale: int):
 
 
 def parseCurve(points: np.array):
+    """
+    Parse a curve to extract influence vectors.
+    Assumes points are in (x,y) format.
+    Returns a dictionary with (x,y) tuple keys and lists of influence vectors.
+    """
     influences = {}
-    for i in range(len(points) - 1):
-        vec = points[i+1] - points[i]
-        vec = vec / np.linalg.norm(vec)
 
-        key = (points[i][0], points[i][1])
+    for i in range(len(points) - 1):
+        p1 = points[i]
+        p2 = points[i+1]
+
+        # Calculate the vector (dx, dy) between consecutive points
+        vec = p2 - p1
+
+        # Normalize the vector
+        norm = np.linalg.norm(vec)
+        if norm > 0:
+            vec = vec / norm
+
+        # Store as (x,y) for consistency
+        key = (int(p1[0]), int(p1[1]))
 
         if key not in influences:
             influences[key] = []
+
         influences[key].append(vec)
 
     return influences
 
 
 def avgVector(vectors: list[np.array]):
+    """Calculate the average of a list of vectors."""
     sum_vec = np.array((0, 0), dtype=np.float64)
     count = 0
     for vector in vectors:
-        if vector.all() == 0:
+        if np.all(vector == 0):
             continue
         sum_vec += vector
         count += 1
@@ -133,6 +171,11 @@ def avgVector(vectors: list[np.array]):
 
 
 def parseCurves(curves: list[np.array], img_h: int, img_w: int):
+    """
+    Parse multiple curves to create a vector field.
+    Assumes curves contain points in (x,y) format.
+    Returns a vector field of shape (h, w, 2) where each vector is (dx, dy).
+    """
     all_influences = {}
 
     for curve in curves:
@@ -144,16 +187,24 @@ def parseCurves(curves: list[np.array], img_h: int, img_w: int):
             else:
                 all_influences[point] = vectors
 
-    # At each point, take the average of all influences
-    influences = np.zeros((img_h, img_w, 2), dtype=np.float64)
-    for point, vectors in all_influences.items():
-        influences[point[0], point[1]] = avgVector(vectors)
+    # Initialize the vector field with zeros
+    # Note: The array is indexed as [y, x] but contains (dx, dy) vectors
+    vector_field = np.zeros((img_h, img_w, 2), dtype=np.float64)
 
-    return influences
+    # At each point, take the average of all influences
+    for point, vectors in all_influences.items():
+        # Convert (x,y) point to array indices [y,x]
+        x, y = point
+
+        # Check if the point is within array bounds
+        if 0 <= y < img_h and 0 <= x < img_w:
+            vector_field[y, x] = avgVector(vectors)
+
+    return vector_field
 
 
 def areaVector(vector_field: np.array, rect: tuple[int, int, int, int]):
-    x, y, w, h = rect
+    y, x, h, w = rect
     area = vector_field[y:y+h, x:x+w, :]
     return avgVector(area.reshape(h * w, 2))
 
@@ -168,10 +219,10 @@ def compressVectorField(vector_field: np.array, window_size: tuple[int, int]):
 
     compressed = np.zeros((int(h / window_h), int(w / window_w), 2))
 
-    for x in range(0, w, window_w):
-        for y in range(0, h, window_h):
+    for y in range(0, h, window_h):
+        for x in range(0, w, window_w):
             compressed[int(y/window_h), int(x/window_w)] =\
-                areaVector(vector_field, (x, y, window_w, window_h))
+                areaVector(vector_field, (y, x, window_h, window_w))
 
     return compressed
 
@@ -183,11 +234,12 @@ def main():
     #     raise FileNotFoundError()
 
     shape = (32, 32)
-    scale = 8
+    scale = 2
 
     canvas = np.zeros((shape[0], shape[1], 3), np.uint8)
 
     curves = drawOnImage(canvas, scale)
+    # influences = parseCurves(curves, shape[0]*scale, shape[1]*scale)
     influences = compressVectorField(
         parseCurves(curves, shape[0]*scale, shape[1]*scale), (scale, scale)
     )
