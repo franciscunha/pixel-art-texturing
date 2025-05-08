@@ -2,35 +2,71 @@ import random
 import cv2
 import numpy as np
 
-from annotations import areaVector, compressVectorField, drawOnImage, parseCurves, visualizeVectorField
-from random_placement import placePattern, showScaled
+from annotations import area_vector, compress_vector_field, draw_on_image, parse_curves, visualize_vector_field
+from random_placement import place_pattern, show_scaled
 
 
-def findClosestDirection(dir: np.array):
-    possible_dirs = [np.array([-0.7071, -0.7071]), np.array([-1, 0]), np.array([-0.7071, +0.7071]),
-                     np.array([0, -1]), np.array([0, 1]),
-                     np.array([+0.7071, -0.7071]), np.array([+1, 0]), np.array([+0.7071, +0.7071])]
+def quantize_direction(direction: np.ndarray) -> np.ndarray:
+    """
+    Find the closest cardinal or diagonal direction to the input vector.
 
-    best_dot, best_candidate = 0, None
+    This function quantizes a 2D vector to the nearest of 8 possible directions:
+    - 4 cardinal directions: up, right, down, left (0,1), (1,0), (0,-1), (-1,0)
+    - 4 diagonal directions: (±0.7071, ±0.7071) which are normalized versions of (±1, ±1)
 
-    for candidate in possible_dirs:
-        dot = np.dot(candidate, dir)
+    Args:
+        direction: A 2D vector (numpy array of shape (2,)) representing a direction.
 
-        if abs(dot - 1) < 1e-4:
-            best_candidate = candidate
+    Returns:
+        np.ndarray: An integer vector (either cardinal or diagonal) representing 
+        the closest standard direction. Returns [0, 0] if no valid direction is found.
+
+    Notes:
+        - Directions are matched based on the dot product (cosine similarity).
+        - For normalized input vectors, the dot product is maximized (closer to 1)
+          when the directions are similar.
+        - The function returns integer coordinates (-1, 0, or 1 for each component).
+    """
+    # Define the 8 standard directions (all normalized to unit length)
+    standard_directions = [
+        np.array([-0.7071, -0.7071]),  # Northwest
+        np.array([-1, 0]),             # West
+        np.array([-0.7071, 0.7071]),   # Southwest
+        np.array([0, -1]),             # North
+        np.array([0, 1]),              # South
+        np.array([0.7071, -0.7071]),   # Northeast
+        np.array([1, 0]),              # East
+        np.array([0.7071, 0.7071])     # Southeast
+    ]
+
+    # We know this to be a lower bound for similarity, so we can skip a few comparisons
+    # (dot = 0.7071 if two unit vectors are 45 degrees apart)
+    best_similarity = 0.7
+    best_direction = None
+
+    for candidate in standard_directions:
+        # Calculate dot product as a measure of similarity
+        similarity = np.dot(candidate, direction)
+
+        # If directions are nearly identical (accounting for floating point errors)
+        if abs(similarity - 1) < 1e-4:
+            best_direction = candidate
             break
 
-        if dot > best_dot:
-            best_dot = dot
-            best_candidate = candidate
+        # Update best match if this similarity is higher
+        if similarity > best_similarity:
+            best_similarity = similarity
+            best_direction = candidate
 
-    if best_candidate is None:
+    # If no valid direction found, return zero vector
+    if best_direction is None:
         return np.array([0, 0])
 
-    return np.round(best_candidate).astype(np.int8)
+    # Convert the floating-point direction to integers (-1, 0, or 1)
+    return np.round(best_direction).astype(np.int8)
 
 
-def placePatternsWithinBoundary(
+def place_patterns_within_boundary(
         destination: cv2.Mat,
         patterns: np.array,
         boundary: cv2.Mat,
@@ -102,10 +138,11 @@ def placePatternsWithinBoundary(
 
         # Find the direction of that area
         area_dir =\
-            areaVector(vector_field, (y0, x0, pattern_width, pattern_height))
+            area_vector(vector_field, (y0, x0, pattern_width, pattern_height))
 
         # Choose appropriate pattern according to direction
-        pattern_dir_y, pattern_dir_x = findClosestDirection(area_dir)
+        # TODO swapped coords here might be an issue
+        pattern_dir_y, pattern_dir_x = quantize_direction(area_dir)
         pattern = patterns[pattern_dir_y+1, pattern_dir_x+1]
 
         # Ignore placements without a direction
@@ -113,7 +150,7 @@ def placePatternsWithinBoundary(
             continue
 
         # Place the pattern
-        success = placePattern(result, pattern, y0, x0, hsv_shift)
+        success = place_pattern(result, pattern, y0, x0, hsv_shift)
 
         if not success:
             continue
@@ -136,7 +173,7 @@ def placePatternsWithinBoundary(
     return result
 
 
-def splitOrientedSpritesheet(img: cv2.Mat):
+def split_oriented_spritesheet(img: cv2.Mat):
     """
     Splits a 3x3 spritesheet into individual sprites based on orientation.
 
@@ -195,21 +232,21 @@ def main():
 
     scale = 4
     shape = base.shape[:2]
-    patterns = splitOrientedSpritesheet(pattern_sheet)
+    patterns = split_oriented_spritesheet(pattern_sheet)
 
-    curves = drawOnImage(base, scale)
-    influences = compressVectorField(
-        parseCurves(curves, shape[0]*scale, shape[1]*scale), (scale, scale)
+    curves = draw_on_image(base, scale)
+    influences = compress_vector_field(
+        parse_curves(curves, shape[0]*scale, shape[1]*scale), (scale, scale)
     )
 
-    vector_field_img = visualizeVectorField(
-        compressVectorField(influences, (4, 4)))
+    vector_field_img = visualize_vector_field(
+        compress_vector_field(influences, (4, 4)))
     cv2.imshow("Vector field", vector_field_img)
 
-    result = placePatternsWithinBoundary(base, patterns, boundary, influences,
-                                         pattern_padding=1, num_patterns=50, hsv_shift=(0, 0, -20))
+    result = place_patterns_within_boundary(base, patterns, boundary, influences,
+                                            num_patterns=200, hsv_shift=(0, 0, -20))
 
-    showScaled("Output", result, scale)
+    show_scaled("Output", result, scale)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()

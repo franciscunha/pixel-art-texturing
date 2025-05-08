@@ -3,7 +3,7 @@ import numpy as np
 
 
 # Written by Claude
-def drawGrid(cell_size, grid_height, grid_width, background_color=(255, 255, 255), line_color=(0, 0, 0), line_thickness=1):
+def draw_grid(cell_size, grid_height, grid_width, background_color=(255, 255, 255), line_color=(0, 0, 0), line_thickness=1):
     # Calculate the pixel dimensions
     img_height = grid_height * cell_size
     img_width = grid_width * cell_size
@@ -27,7 +27,7 @@ def drawGrid(cell_size, grid_height, grid_width, background_color=(255, 255, 255
     return grid_image
 
 
-def visualizeVectorField(vec_field: np.array):
+def visualize_vector_field(vec_field: np.array):
     """
     Visualize a vector field. The input array should have shape (h, w, 2),
     where vec_field[y, x] contains the (dx, dy) vector at position (x, y).
@@ -39,7 +39,7 @@ def visualizeVectorField(vec_field: np.array):
     cell_size = 24
     center_offset = cell_size / 2
     # img = np.zeros((h * cell_size, w * cell_size, 4), np.uint8)
-    img = drawGrid(cell_size, h, w)
+    img = draw_grid(cell_size, h, w)
 
     for y in range(h):
         for x in range(w):
@@ -61,12 +61,12 @@ def visualizeVectorField(vec_field: np.array):
                 start[1] + vec[1] * center_offset
             ], dtype=np.float64)
 
-            drawArrow(img, start, end, (255, 0, 0), 3)
+            draw_arrow(img, start, end, (255, 0, 0), 3)
 
     return img
 
 
-def drawArrow(img: cv2.Mat, start: np.array, end: np.array, color: np.array, size=5):
+def draw_arrow(img: cv2.Mat, start: np.array, end: np.array, color: np.array, size=5):
     """
     Draw an arrow from start to end on the image.
     start and end should be in (x,y) format for OpenCV compatibility.
@@ -89,7 +89,7 @@ def drawArrow(img: cv2.Mat, start: np.array, end: np.array, color: np.array, siz
     cv2.fillPoly(img, [tip], color)
 
 
-def drawOnImage(img: cv2.Mat, scale: int):
+def draw_on_image(img: cv2.Mat, scale: int):
     # Rescale image
     img = cv2.resize(img, dsize=None, fx=scale, fy=scale,
                      interpolation=cv2.INTER_NEAREST)
@@ -111,7 +111,7 @@ def drawOnImage(img: cv2.Mat, scale: int):
             cv2.line(img, points[-2], points[-1], (255, 0, 0), 5)
         elif event == cv2.EVENT_LBUTTONUP:
             if len(points) > 1:
-                drawArrow(img, points[-2], points[-1], (255, 0, 0))
+                draw_arrow(img, points[-2], points[-1], (255, 0, 0))
                 curves.append(np.array(points))
             points.clear()
 
@@ -127,7 +127,7 @@ def drawOnImage(img: cv2.Mat, scale: int):
     return curves
 
 
-def parseCurve(points: np.array):
+def parse_curve(points: np.array):
     """
     Parse a curve to extract influence vectors.
     Assumes points are in (x,y) format.
@@ -158,7 +158,7 @@ def parseCurve(points: np.array):
     return influences
 
 
-def avgVector(vectors: list[np.array]):
+def average_vector(vectors: list[np.array]):
     """Calculate the average of a list of vectors."""
     sum_vec = np.array((0, 0), dtype=np.float64)
     count = 0
@@ -170,7 +170,7 @@ def avgVector(vectors: list[np.array]):
     return sum_vec / count if count != 0 else sum_vec
 
 
-def parseCurves(curves: list[np.array], img_h: int, img_w: int):
+def parse_curves(curves: list[np.array], img_h: int, img_w: int):
     """
     Parse multiple curves to create a vector field.
     Assumes curves contain points in (x,y) format.
@@ -179,7 +179,7 @@ def parseCurves(curves: list[np.array], img_h: int, img_w: int):
     all_influences = {}
 
     for curve in curves:
-        curve_influences = parseCurve(curve)
+        curve_influences = parse_curve(curve)
 
         for point, vectors in curve_influences.items():
             if point in all_influences:
@@ -198,31 +198,74 @@ def parseCurves(curves: list[np.array], img_h: int, img_w: int):
 
         # Check if the point is within array bounds
         if 0 <= y < img_h and 0 <= x < img_w:
-            vector_field[y, x] = avgVector(vectors)
+            vector_field[y, x] = average_vector(vectors)
 
     return vector_field
 
 
-def areaVector(vector_field: np.array, rect: tuple[int, int, int, int]):
-    y, x, h, w = rect
-    area = vector_field[y:y+h, x:x+w, :]
-    return avgVector(area.reshape(h * w, 2))
+def area_vector(vector_field: np.ndarray, region: tuple[int, int, int, int]) -> np.ndarray:
+    """
+    Extract and average vectors from a rectangular region in a vector field.
+
+    Args:
+        vector_field: 3D array of shape (height, width, 2) representing a 2D field of vectors.
+        region: Tuple (y, x, height, width) defining the rectangular region to process.
+            y, x: Top-left coordinates of the region.
+            height, width: Dimensions of the region.
+
+    Returns:
+        np.ndarray: A single 2D vector representing the average of all vectors in the region.
+    """
+    y, x, height, width = region
+    # Extract the vectors in the specified rectangular region
+    area = vector_field[y:y+height, x:x+width, :]
+    # Flatten the 2D grid of vectors into a 1D array of vectors, then average
+    return average_vector(area.reshape(height * width, 2))
 
 
-def compressVectorField(vector_field: np.array, window_size: tuple[int, int]):
-    window_h, window_w = window_size
-    h, w, _ = vector_field.shape
+def compress_vector_field(vector_field: np.ndarray, window_size: tuple[int, int]) -> np.ndarray:
+    """
+    Compress a vector field by averaging vectors within non-overlapping windows.
 
-    if h % window_h != 0 or w % window_w != 0:
+    Args:
+        vector_field: 3D array of shape (height, width, 2) representing a 2D field of vectors.
+        window_size: Tuple (window_height, window_width) defining the size of each window.
+            The vector field dimensions must be evenly divisible by these values.
+
+    Returns:
+        np.ndarray: Compressed vector field of shape (height/window_height, width/window_width, 2).
+
+    Raises:
+        ValueError: If the vector field dimensions are not evenly divisible by the window size.
+    """
+    window_height, window_width = window_size
+    height, width, _ = vector_field.shape
+
+    # Check if the vector field can be evenly divided into windows
+    if height % window_height != 0 or width % window_width != 0:
         raise ValueError(
-            "Vector field resolution must be evenly divisible by the window size")
+            "Vector field dimensions must be evenly divisible by the window size"
+        )
 
-    compressed = np.zeros((int(h / window_h), int(w / window_w), 2))
+    # Calculate dimensions of the compressed field
+    compressed_height = height // window_height
+    compressed_width = width // window_width
 
-    for y in range(0, h, window_h):
-        for x in range(0, w, window_w):
-            compressed[int(y/window_h), int(x/window_w)] =\
-                areaVector(vector_field, (y, x, window_h, window_w))
+    # Initialize the compressed vector field
+    compressed = np.zeros((compressed_height, compressed_width, 2))
+
+    # Process each window
+    for y in range(0, height, window_height):
+        for x in range(0, width, window_width):
+            # Calculate indices in the compressed field
+            compressed_y = y // window_height
+            compressed_x = x // window_width
+
+            # Calculate the average vector for this window
+            compressed[compressed_y, compressed_x] = area_vector(
+                vector_field,
+                (y, x, window_height, window_width)
+            )
 
     return compressed
 
@@ -238,13 +281,13 @@ def main():
 
     canvas = np.zeros((shape[0], shape[1], 3), np.uint8)
 
-    curves = drawOnImage(canvas, scale)
+    curves = draw_on_image(canvas, scale)
     # influences = parseCurves(curves, shape[0]*scale, shape[1]*scale)
-    influences = compressVectorField(
-        parseCurves(curves, shape[0]*scale, shape[1]*scale), (scale, scale)
+    influences = compress_vector_field(
+        parse_curves(curves, shape[0]*scale, shape[1]*scale), (scale, scale)
     )
 
-    vector_field_img = visualizeVectorField(influences)
+    vector_field_img = visualize_vector_field(influences)
 
     cv2.imshow("Vector field", vector_field_img)
 

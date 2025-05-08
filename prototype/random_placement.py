@@ -3,7 +3,7 @@ import numpy as np
 import random
 
 
-def visualizeMask(mask, original_shape):
+def visualize_mask(mask, original_shape):
     """Helper function to visualize the availability mask for debugging"""
     vis_mask = np.zeros_like(original_shape)
     vis_mask[:, :, 3] = mask.astype(np.uint8) * 255  # Alpha channel
@@ -13,7 +13,7 @@ def visualizeMask(mask, original_shape):
     return vis_mask
 
 
-def placeRandomSingularPatternWithinBoundary(
+def place_random_singular_pattern_within_boundary(
         destination: cv2.Mat,
         pattern: cv2.Mat,
         boundary: cv2.Mat,
@@ -77,7 +77,7 @@ def placeRandomSingularPatternWithinBoundary(
             continue
 
         # Place the pattern
-        success = placePattern(result, pattern, y0, x0, hsv_shift)
+        success = place_pattern(result, pattern, y0, x0, hsv_shift)
 
         if not success:
             continue
@@ -100,13 +100,13 @@ def placeRandomSingularPatternWithinBoundary(
     return result
 
 
-def showScaled(title: str, img: cv2.Mat, factor: int):
+def show_scaled(title: str, img: cv2.Mat, factor: int):
     scaled = cv2.resize(img, dsize=None, fx=factor,
                         fy=factor, interpolation=cv2.INTER_NEAREST)
     cv2.imshow(title, scaled)
 
 
-def getSimilarColor(base: cv2.Mat, rect: tuple[int, int, int, int], hsv_shift: tuple[int, int, int]):
+def get_similar_color(base: cv2.Mat, rect: tuple[int, int, int, int], hsv_shift: tuple[int, int, int]):
     """
     Gets the average color of a region of an image, then shifts it.
 
@@ -149,13 +149,13 @@ def getSimilarColor(base: cv2.Mat, rect: tuple[int, int, int, int], hsv_shift: t
     return shifted_color_bgr
 
 
-def monochromizeImage(img: cv2.Mat, color: np.ndarray):
+def monochromize_image(img: cv2.Mat, color: np.ndarray):
     if color.shape != (3,):
         raise ValueError(f"{color} is not a color")
     img[:, :, :3] = color
 
 
-def placePattern(destination: cv2.Mat, pattern: cv2.Mat, y: int, x: int, hsv_shift: tuple[int, int, int] | None = None):
+def place_pattern(destination: cv2.Mat, pattern: cv2.Mat, y: int, x: int, hsv_shift: tuple[int, int, int] | None = None):
     # Boundary check
     h, w = pattern.shape[:2]
     if y + h > destination.shape[0] or x + w > destination.shape[1]:
@@ -164,8 +164,8 @@ def placePattern(destination: cv2.Mat, pattern: cv2.Mat, y: int, x: int, hsv_shi
     # Extract alpha
     pattern_alpha = pattern[:, :, 3] / 255.0
     if hsv_shift is not None:
-        color = getSimilarColor(destination, (y, x, h, w), hsv_shift)
-        monochromizeImage(pattern, color)
+        color = get_similar_color(destination, (y, x, h, w), hsv_shift)
+        monochromize_image(pattern, color)
 
     # TODO pattern should inherit base's alpha in final placement
 
@@ -189,14 +189,14 @@ def main():
     if shape is None or pattern is None or boundary is None:
         raise FileNotFoundError()
 
-    showScaled("Input", shape, 4)
+    show_scaled("Input", shape, 4)
     # If this comes after a call to placePattern with hsv_shift, it'll just look like a square
-    showScaled("Pattern", pattern, 64)
+    show_scaled("Pattern", pattern, 64)
 
-    result = placeRandomSingularPatternWithinBoundary(
+    result = place_random_singular_pattern_within_boundary(
         shape, pattern, boundary, 2, 60, hsv_shift=(0, 0, 30))
 
-    showScaled("Output", result, 4)
+    show_scaled("Output", result, 4)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
