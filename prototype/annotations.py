@@ -152,6 +152,12 @@ def parseCurves(curves: list[np.array], img_h: int, img_w: int):
     return influences
 
 
+def areaVector(vector_field: np.array, rect: tuple[int, int, int, int]):
+    x, y, w, h = rect
+    area = vector_field[y:y+h, x:x+w, :]
+    return avgVector(area.reshape(h * w, 2))
+
+
 def compressVectorField(vector_field: np.array, window_size: tuple[int, int]):
     window_h, window_w = window_size
     h, w, _ = vector_field.shape
@@ -164,9 +170,8 @@ def compressVectorField(vector_field: np.array, window_size: tuple[int, int]):
 
     for x in range(0, w, window_w):
         for y in range(0, h, window_h):
-            window = vector_field[y:y+window_h, x:x+window_w, :]
-            vec = avgVector(window.reshape(window_h * window_w, 2))
-            compressed[int(y/window_h), int(x/window_w)] = vec
+            compressed[int(y/window_h), int(x/window_w)] =\
+                areaVector(vector_field, (x, y, window_w, window_h))
 
     return compressed
 

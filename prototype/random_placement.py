@@ -13,7 +13,7 @@ def visualizeMask(mask, original_shape):
     return vis_mask
 
 
-def placeRandomPatternsWithinBoundary(
+def placeRandomSingularPatternWithinBoundary(
         destination: cv2.Mat,
         pattern: cv2.Mat,
         boundary: cv2.Mat,
@@ -193,7 +193,7 @@ def main():
     # If this comes after a call to placePattern with hsv_shift, it'll just look like a square
     showScaled("Pattern", pattern, 64)
 
-    result = placeRandomPatternsWithinBoundary(
+    result = placeRandomSingularPatternWithinBoundary(
         shape, pattern, boundary, 2, 60, hsv_shift=(0, 0, 30))
 
     showScaled("Output", result, 4)
