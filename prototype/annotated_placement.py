@@ -137,14 +137,47 @@ def placePatternsWithinBoundary(
 
 
 def splitOrientedSpritesheet(img: cv2.Mat):
-    img_h, img_w, _ = img.shape
-    h, w = int(img_h / 3), int(img_w / 3)
+    """
+    Splits a 3x3 spritesheet into individual sprites based on orientation.
 
-    sprites = np.empty((3, 3, h, w, 4))
-    for j in range(-1, 2):
-        for i in range(-1, 2):
-            y, x = (j+1) * h, (i+1) * w
-            sprites[j+1, i+1, :, :, :] = img[y:y+h, x:x+w, :]
+    The spritesheet is assumed to have 9 sprites arranged in a 3x3 grid.
+    Each sprite represents a different orientation:
+        [0,0]: top-left     [0,1]: top       [0,2]: top-right
+        [1,0]: left         [1,1]: center    [1,2]: right
+        [2,0]: bottom-left  [2,1]: bottom    [2,2]: bottom-right
+
+    Args:
+        img: OpenCV image (H,W,C) format where H = sprite_height*3 and W = sprite_width*3
+
+    Returns:
+        sprites: Numpy array of shape (3,3,sprite_height,sprite_width,4) containing all sprites
+                 indexed as sprites[row, col]
+    """
+    # Get total image dimensions
+    img_height, img_width, _ = img.shape
+
+    # Calculate individual sprite dimensions
+    sprite_height = int(img_height / 3)
+    sprite_width = int(img_width / 3)
+
+    # Initialize output array: [row, col, sprite_height, sprite_width, channels]
+    sprites = np.empty((3, 3, sprite_height, sprite_width, 4))
+
+    # Iterate through the 3x3 grid
+    for row_idx in range(3):
+        for col_idx in range(3):
+            # This section has an apparent x, x swap. This is because we need to access the image
+            # with OpenCV's [y, x] indexing, but the sprites themselves are laid out in the more
+            # intuitive [x, y] indexing.
+
+            # Calculate starting pixel coordinates in the original image
+            # Convert grid position to pixel position
+            start_x = (row_idx) * sprite_height
+            start_y = (col_idx) * sprite_width
+
+            # Extract the sprite and store it in our output array
+            sprites[row_idx, col_idx, :, :, :] = img[start_y:start_y+sprite_height,
+                                                     start_x:start_x+sprite_width, :]
 
     return sprites
 
