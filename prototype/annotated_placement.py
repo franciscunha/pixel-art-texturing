@@ -40,8 +40,9 @@ def quantize_direction(direction: np.ndarray) -> np.ndarray:
     ]
 
     # We know this to be a lower bound for similarity, so we can skip a few comparisons
-    # (dot = 0.7071 if two unit vectors are 45 degrees apart)
-    best_similarity = 0.7
+    # Cannot take higher lower bound because no guarantee vector is unitary
+    # (dot = 0 if two vectors are 90 degrees apart)
+    best_similarity = 0
     best_direction = None
 
     for candidate in standard_directions:
@@ -112,6 +113,7 @@ def place_patterns_within_boundary(
 
     patterns_placed = 0
     attempts = 0
+    no_dir_count = 0
 
     while patterns_placed < num_patterns and attempts < max_attempts and valid_positions:
         attempts += 1
@@ -147,6 +149,7 @@ def place_patterns_within_boundary(
 
         # Ignore placements without a direction
         if pattern_dir_y == 0 and pattern_dir_x == 0:
+            no_dir_count += 1
             continue
 
         # Place the pattern
@@ -169,7 +172,7 @@ def place_patterns_within_boundary(
         # print(f"Placed pattern #{patterns_placed} direction {(pattern_dir_x, pattern_dir_y)} at ({x0}, {y0})")
 
     print(
-        f"Placed {patterns_placed} patterns out of {num_patterns} requested (in {attempts} attempts)")
+        f"Placed {patterns_placed} patterns out of {num_patterns} requested (in {attempts} attempts, {no_dir_count} had no direction)")
     return result
 
 
@@ -203,7 +206,7 @@ def split_oriented_spritesheet(img: cv2.Mat):
     # Iterate through the 3x3 grid
     for row_idx in range(3):
         for col_idx in range(3):
-            # This section has an apparent x, x swap. This is because we need to access the image
+            # This section has an apparent x, y swap. This is because we need to access the image
             # with OpenCV's [y, x] indexing, but the sprites themselves are laid out in the more
             # intuitive [x, y] indexing.
 
@@ -221,11 +224,10 @@ def split_oriented_spritesheet(img: cv2.Mat):
 
 def main():
 
-    base = cv2.imread("data/shaded_tree.png", cv2.IMREAD_UNCHANGED)
+    base = np.full((64, 64, 4), 255, np.uint8)
     pattern_sheet = cv2.imread(
         f"data/slynrd_leaf_spritesheet.png", cv2.IMREAD_UNCHANGED)
-    boundary = cv2.imread(
-        f"data/shaded_tree_canopy_full_boundary.png", cv2.IMREAD_UNCHANGED)
+    boundary = np.full_like(base, 255)
 
     if base is None or pattern_sheet is None or boundary is None:
         raise FileNotFoundError()
@@ -244,7 +246,7 @@ def main():
     cv2.imshow("Vector field", vector_field_img)
 
     result = place_patterns_within_boundary(base, patterns, boundary, influences,
-                                            num_patterns=200, hsv_shift=(0, 0, -20))
+                                            num_patterns=200, hsv_shift=(45, 255, 0))
 
     show_scaled("Output", result, scale)
 
