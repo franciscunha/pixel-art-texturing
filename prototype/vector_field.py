@@ -64,7 +64,7 @@ def solve_poisson(constraints: sparse.coo_matrix):
     diagonal = sparse.eye(n) * 4
 
     # Create discrete Laplace operator matrix
-    laplace = diagonal + connections
+    laplace = (diagonal + connections).tolil()
 
     # Initialize divergences (right-hand side) with zeros
     divergences = np.zeros(n)
@@ -82,10 +82,18 @@ def solve_poisson(constraints: sparse.coo_matrix):
         divergences[idx] = constraints[i, j]
 
     # Solve the linear system
-    result = sparse.linalg.spsolve(laplace, divergences)
+    result = sparse.linalg.spsolve(laplace.tocsr(), divergences)
 
     # Reshape result to image dimensions
     return result.reshape(h, w)
+
+
+def diffuse_vector_field(constraints: np.ndarray):
+    vector_field = np.zeros_like(constraints)
+    for component in range(2):
+        component_wise = sparse.coo_matrix(constraints[:, :, component])
+        vector_field[:, :, component] = solve_poisson(component_wise)
+    return vector_field
 
 
 if __name__ == "__main__":
@@ -102,13 +110,7 @@ if __name__ == "__main__":
     influences_img = visualize_vector_field(influences)
     cv2.imshow("Influences", influences_img)
 
-    vector_field = np.zeros_like(influences)
-    for component in range(2):
-        component_wise_influences = sparse.coo_matrix(
-            influences[:, :, component])
-
-        vector_field[:, :, component] = \
-            solve_poisson(component_wise_influences)
+    vector_field = diffuse_vector_field(influences)
 
     vector_field_imgs = visualize_vector_field(vector_field)
     cv2.imshow("Vector field", vector_field_imgs)
