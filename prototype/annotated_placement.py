@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 
 from annotations import area_vector, compress_vector_field, draw_on_image, parse_curves
-from debug import visualize_vector_field
+from prototype.visualizations import visualize_vector_field
 from random_placement import place_pattern, show_scaled
 
 

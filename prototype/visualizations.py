@@ -27,7 +27,7 @@ def draw_grid(cell_size, grid_height, grid_width, background_color=(255, 255, 25
     return grid_image
 
 
-def visualize_vector_field(vec_field: np.array, scalar_field: np.array | None = None):
+def visualize_vector_field(vec_field: np.array, scalar_field: np.array = None, cell_size: int = 24):
     """
     Visualize a vector field. The input array should have shape (h, w, 2),
     where vec_field[y, x] contains the (dx, dy) vector at position (x, y).
@@ -36,7 +36,6 @@ def visualize_vector_field(vec_field: np.array, scalar_field: np.array | None = 
     if vec_shape != 2:
         raise ValueError("Expected shape (h, w, 2)")
 
-    cell_size = 24
     center_offset = cell_size / 2
     # img = np.zeros((h * cell_size, w * cell_size, 4), np.uint8)
     img = draw_grid(cell_size, h, w)
@@ -64,8 +63,10 @@ def visualize_vector_field(vec_field: np.array, scalar_field: np.array | None = 
             draw_arrow(img, start, end, (255, 0, 0), 3)
 
             if scalar_field is not None:
+                start_point = (
+                    int(start[0]) - int(center_offset/2), int(start[1]) - int(center_offset/2))
                 cv2.putText(
-                    img, str(scalar_field[y, x]), start, 1, 1, (0, 0, 255))
+                    img, f"{scalar_field[y, x]:.2f}", start_point, 1, 1, (0, 0, 255))
 
     return img
 
