@@ -89,6 +89,10 @@ def solve_poisson(constraints: sparse.coo_matrix):
     return result.reshape(h, w)
 
 
+def divergence(vector_field: np.ndarray):
+    return np.ufunc.reduce(np.add, [np.gradient(vector_field[:, :, i], axis=i) for i in range(2)])
+
+
 def diffuse_vector_field(constraints: np.ndarray):
     vector_field = np.zeros_like(constraints)
     for component in range(2):
