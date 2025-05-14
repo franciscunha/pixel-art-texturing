@@ -2,7 +2,8 @@ import cv2
 import numpy as np
 from scipy import sparse
 
-from annotations import compress_vector_field, draw_on_image, parse_curves, visualize_vector_field
+from annotations import compress_vector_field, draw_on_image, parse_curves
+from debug import visualize_vector_field
 
 
 def solve_poisson(constraints: sparse.coo_matrix):

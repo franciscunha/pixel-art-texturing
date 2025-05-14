@@ -2,7 +2,8 @@ import cv2
 import numpy as np
 
 from annotated_placement import place_patterns_within_boundary, split_oriented_spritesheet
-from annotations import compress_vector_field, draw_on_image, parse_curves, visualize_vector_field
+from annotations import compress_vector_field, draw_on_image, parse_curves
+from debug import visualize_vector_field
 from vector_field import diffuse_vector_field
 from random_placement import show_scaled
 
@@ -50,7 +51,7 @@ if show_annotations:
     cv2.imshow("Annotations", annotations_img)
 
 result = place_patterns_within_boundary(base, patterns, boundary, vector_field,
-                                        num_patterns=200, hsv_shift=(0, 0, -20))
+                                        num_patterns=500, hsv_shift=(0, 0, -20))
 
 show_scaled("Output", result, scale)
 
