@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from prototype.visualizations import visualize_vector_field, draw_arrow
+from visualizations import visualize_vector_field, draw_arrow
 
 
 def draw_on_image(img: cv2.Mat, scale: int):

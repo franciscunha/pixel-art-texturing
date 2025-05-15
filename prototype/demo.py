@@ -3,9 +3,8 @@ import numpy as np
 
 from annotated_placement import place_patterns_within_boundary, split_oriented_spritesheet
 from annotations import compress_vector_field, draw_on_image, parse_curves
-from prototype.visualizations import visualize_vector_field
+from visualizations import visualize_vector_field, show_scaled
 from vector_field import diffuse_vector_field
-from random_placement import show_scaled
 
 
 show_annotations = False

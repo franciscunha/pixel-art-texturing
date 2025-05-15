@@ -2,15 +2,7 @@ import cv2
 import numpy as np
 import random
 
-
-def visualize_mask(mask, original_shape):
-    """Helper function to visualize the availability mask for debugging"""
-    vis_mask = np.zeros_like(original_shape)
-    vis_mask[:, :, 3] = mask.astype(np.uint8) * 255  # Alpha channel
-    vis_mask[:, :, 0] = mask.astype(np.uint8) * 255  # Blue
-    vis_mask[:, :, 1] = 0  # Green
-    vis_mask[:, :, 2] = 0  # Red
-    return vis_mask
+from visualizations import show_scaled
 
 
 def place_random_singular_pattern_within_boundary(
@@ -98,12 +90,6 @@ def place_random_singular_pattern_within_boundary(
     print(
         f"Placed {patterns_placed} patterns out of {num_patterns} requested (in {attempts} attempts)")
     return result
-
-
-def show_scaled(title: str, img: cv2.Mat, factor: int):
-    scaled = cv2.resize(img, dsize=None, fx=factor,
-                        fy=factor, interpolation=cv2.INTER_NEAREST)
-    cv2.imshow(title, scaled)
 
 
 def get_similar_color(base: cv2.Mat, rect: tuple[int, int, int, int], hsv_shift: tuple[int, int, int]):

@@ -3,8 +3,8 @@ import cv2
 import numpy as np
 
 from annotations import area_vector, compress_vector_field, draw_on_image, parse_curves
-from prototype.visualizations import visualize_vector_field
-from random_placement import place_pattern, show_scaled
+from visualizations import visualize_vector_field, show_scaled
+from random_placement import place_pattern
 
 
 def quantize_direction(direction: np.ndarray) -> np.ndarray:
