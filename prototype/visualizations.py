@@ -101,11 +101,10 @@ def draw_arrow(img: cv2.Mat, start: np.array, end: np.array, color: np.array, si
     cv2.fillPoly(img, [tip], color)
 
 
-def visualize_mask(mask, original_shape):
+def visualize_mask(mask, channel):
     """Helper function to visualize the availability mask for debugging"""
-    vis_mask = np.zeros_like(original_shape)
+    w, h = mask.shape
+    vis_mask = np.zeros((w, h, 4), dtype=np.uint8)
     vis_mask[:, :, 3] = mask.astype(np.uint8) * 255  # Alpha channel
-    vis_mask[:, :, 0] = mask.astype(np.uint8) * 255  # Blue
-    vis_mask[:, :, 1] = 0  # Green
-    vis_mask[:, :, 2] = 0  # Red
+    vis_mask[:, :, channel] = mask.astype(np.uint8) * 255
     return vis_mask

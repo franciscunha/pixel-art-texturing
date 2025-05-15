@@ -4,6 +4,7 @@ import numpy as np
 
 from annotations import draw_on_image, parse_curves
 from placement import place_pattern
+from boundaries import mask_from_boundary
 from vector_field import area_vector, compress_vector_field
 from vector_helpers import quantize_direction
 from visualizations import show_scaled, visualize_vector_field
@@ -11,9 +12,9 @@ from visualizations import show_scaled, visualize_vector_field
 
 def place_patterns_within_boundary(
         destination: cv2.Mat,
-        patterns: np.array,
-        boundary: cv2.Mat,
-        vector_field: np.array,
+        patterns: np.ndarray,
+        availability_mask: np.ndarray,
+        vector_field: np.ndarray,
         pattern_padding=0,
         num_patterns=20,
         max_attempts=1000,
@@ -24,7 +25,6 @@ def place_patterns_within_boundary(
     Args:
         destination: The destination image where patterns will be placed
         patterns: A 3x3 matrix where each cell is a pattern aligned with its coordinates direction
-        boundary: The image defining the boundary
         vector_field: Matrix of same size as image, defining a direction per pixel
         pattern_padding: Space between any two placed patterns, in pixels
         num_patterns: Number of patterns to try to place
@@ -35,15 +35,11 @@ def place_patterns_within_boundary(
     """
 
     result = destination.copy()
-    boundary_height, boundary_width = boundary.shape[:2]
+    height, width = destination.shape[:2]
     dir_h, dir_w, pattern_height, pattern_width, _ = patterns.shape
 
     if dir_w != 3 or dir_h != 3:
         raise ValueError("Patterns should be within a 3x3 matrix")
-
-    # Create a mask where True means space is available (initial mask is the boundary)
-    # We start with the boundary where alpha = 255 means available space
-    availability_mask = boundary[:, :, 3] == 255
 
     # Find all valid starting positions initially (for faster random selection)
     valid_y, valid_x = np.where(availability_mask)
@@ -66,7 +62,7 @@ def place_patterns_within_boundary(
         y1, x1 = y0 + pattern_height, x0 + pattern_width
 
         # Check if the pattern would fit at this position
-        if (y1 > boundary_height or x1 > boundary_width):
+        if (y1 > height or x1 > width):
             # Remove this position from consideration
             valid_positions.pop(position_idx)
             continue
@@ -187,7 +183,7 @@ def main():
         compress_vector_field(influences, (4, 4)))
     cv2.imshow("Vector field", vector_field_img)
 
-    result = place_patterns_within_boundary(base, patterns, boundary, influences,
+    result = place_patterns_within_boundary(base, patterns, mask_from_boundary(boundary), influences,
                                             num_patterns=200, hsv_shift=(45, 255, 0))
 
     show_scaled("Output", result, scale)

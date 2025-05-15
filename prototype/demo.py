@@ -4,6 +4,7 @@ import numpy as np
 from annotated_placement import place_patterns_within_boundary, split_oriented_spritesheet
 from annotations import draw_on_image, parse_curves
 from diffusion import diffuse_vector_field
+from boundaries import mask_from_boundary, pad_mask
 from vector_field import compress_vector_field
 from visualizations import show_scaled, visualize_vector_field
 
@@ -11,6 +12,10 @@ from visualizations import show_scaled, visualize_vector_field
 show_annotations = False
 show_vector_field = True
 grid_scale = (4, 4)
+
+boundary_mask_padding = 2
+num_patterns = 200
+hsv_shift = (0, 0, -20)
 
 scale = 4
 
@@ -50,8 +55,10 @@ if show_annotations:
         compress_vector_field(annotations, grid_scale))
     cv2.imshow("Annotations", annotations_img)
 
-result = place_patterns_within_boundary(base, patterns, boundary, vector_field,
-                                        num_patterns=500, hsv_shift=(0, 0, -20))
+mask = pad_mask(mask_from_boundary(boundary), boundary_mask_padding)
+
+result = place_patterns_within_boundary(
+    base, patterns, mask, vector_field, num_patterns=num_patterns, hsv_shift=hsv_shift)
 
 show_scaled("Output", result, scale)
 
