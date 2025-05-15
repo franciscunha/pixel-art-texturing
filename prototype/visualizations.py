@@ -2,8 +2,15 @@ import cv2
 import numpy as np
 
 
-# Written by Claude
+def show_scaled(title: str, img: cv2.Mat, factor: int):
+    scaled = cv2.resize(img, dsize=None, fx=factor,
+                        fy=factor, interpolation=cv2.INTER_NEAREST)
+    cv2.imshow(title, scaled)
+
+
 def draw_grid(cell_size, grid_height, grid_width, background_color=(255, 255, 255), line_color=(0, 0, 0), line_thickness=1):
+    # Written by Claude
+
     # Calculate the pixel dimensions
     img_height = grid_height * cell_size
     img_width = grid_width * cell_size
@@ -102,9 +109,3 @@ def visualize_mask(mask, original_shape):
     vis_mask[:, :, 1] = 0  # Green
     vis_mask[:, :, 2] = 0  # Red
     return vis_mask
-
-
-def show_scaled(title: str, img: cv2.Mat, factor: int):
-    scaled = cv2.resize(img, dsize=None, fx=factor,
-                        fy=factor, interpolation=cv2.INTER_NEAREST)
-    cv2.imshow(title, scaled)

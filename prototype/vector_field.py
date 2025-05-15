@@ -1,124 +1,74 @@
-import cv2
 import numpy as np
-from scipy import sparse
 
-from annotations import compress_vector_field, draw_on_image, parse_curves
-from visualizations import visualize_vector_field
-
-
-def solve_poisson(constraints: sparse.coo_matrix):
-    """
-    Solve the discrete Poisson equation using SciPy's linear system solver.
-    Based on Section 3.2 of Bezerra et al., 2010 (https://doi.org/10.1145/1809939.1809944).
-    Note that the inputs and results are all one dimensional, such that you have to e.g.
-    call this for each color channel (or vector component).
-
-    Args:
-        constraints: Sparse matrix where each filled element constrains 
-        the result's value in the same position to be equal to it.
-    """
-    h, w = constraints.shape
-    n = h * w  # Total number of pixels
-
-    constraints = constraints.todok()
-
-    # Initialize off-diagonal elements (-1's)
-    i_indices = []
-    j_indices = []
-    values = []
-
-    # For each pixel, connect to its four neighbors
-    for i in range(h):
-        for j in range(w):
-            idx = i * w + j
-
-            # ifs create Neumann boundary
-
-            # left neighbor
-            if j > 0:
-                i_indices.append(idx)
-                j_indices.append(idx - 1)
-                values.append(-1)
-
-            # right neighbor
-            if j < w - 1:
-                i_indices.append(idx)
-                j_indices.append(idx + 1)
-                values.append(-1)
-
-            # top neighbor
-            if i > 0:
-                i_indices.append(idx)
-                j_indices.append(idx - w)
-                values.append(-1)
-
-            # bottom neighbor
-            if i < h - 1:
-                i_indices.append(idx)
-                j_indices.append(idx + w)
-                values.append(-1)
-
-    connections = sparse.coo_matrix(
-        (values, (i_indices, j_indices)), shape=(n, n))
-
-    # Initialize diagonal elements (4's)
-    diagonal = sparse.eye(n) * 4
-
-    # Create discrete Laplace operator matrix
-    laplace = (diagonal + connections).tolil()
-
-    # Initialize divergences (right-hand side) with zeros
-    divergences = np.zeros(n)
-
-    # Set constraints
-    nonzero_is, nonzero_js = constraints.nonzero()
-    for i, j in list(zip(nonzero_is, nonzero_js)):
-        idx = i * w + j
-
-        # Reset row in Laplace matrix to influence only the pixel instead of also its neighbors
-        laplace[idx, :] = 0  # Clear the row
-        laplace[idx, idx] = 1  # Set diagonal to 1
-
-        # Make the pixel equal the constrained value
-        divergences[idx] = constraints[i, j]
-
-    # Solve the linear system
-    result = sparse.linalg.spsolve(laplace.tocsr(), divergences)
-
-    # Reshape result to image dimensions
-    return result.reshape(h, w)
+from vector_helpers import average_vector
 
 
 def divergence(vector_field: np.ndarray):
     return np.ufunc.reduce(np.add, [np.gradient(vector_field[:, :, i], axis=i) for i in range(2)])
 
 
-def diffuse_vector_field(constraints: np.ndarray):
-    vector_field = np.zeros_like(constraints)
-    for component in range(2):
-        component_wise = sparse.coo_matrix(constraints[:, :, component])
-        vector_field[:, :, component] = solve_poisson(component_wise)
-    return vector_field
+def compress_vector_field(vector_field: np.ndarray, window_size: tuple[int, int]) -> np.ndarray:
+    """
+    Compress a vector field by averaging vectors within non-overlapping windows.
+
+    Args:
+        vector_field: 3D array of shape (height, width, 2) representing a 2D field of vectors.
+        window_size: Tuple (window_height, window_width) defining the size of each window.
+            The vector field dimensions must be evenly divisible by these values.
+
+    Returns:
+        np.ndarray: Compressed vector field of shape (height/window_height, width/window_width, 2).
+
+    Raises:
+        ValueError: If the vector field dimensions are not evenly divisible by the window size.
+    """
+    window_height, window_width = window_size
+    height, width, _ = vector_field.shape
+
+    # Check if the vector field can be evenly divided into windows
+    if height % window_height != 0 or width % window_width != 0:
+        raise ValueError(
+            "Vector field dimensions must be evenly divisible by the window size"
+        )
+
+    # Calculate dimensions of the compressed field
+    compressed_height = height // window_height
+    compressed_width = width // window_width
+
+    # Initialize the compressed vector field
+    compressed = np.zeros((compressed_height, compressed_width, 2))
+
+    # Process each window
+    for y in range(0, height, window_height):
+        for x in range(0, width, window_width):
+            # Calculate indices in the compressed field
+            compressed_y = y // window_height
+            compressed_x = x // window_width
+
+            # Calculate the average vector for this window
+            compressed[compressed_y, compressed_x] = area_vector(
+                vector_field,
+                (y, x, window_height, window_width)
+            )
+
+    return compressed
 
 
-if __name__ == "__main__":
-    shape = (32, 32)
-    scale = 4
+def area_vector(vector_field: np.ndarray, region: tuple[int, int, int, int]) -> np.ndarray:
+    """
+    Extract and average vectors from a rectangular region in a vector field.
 
-    canvas = np.zeros((shape[0], shape[1], 3), np.uint8)
+    Args:
+        vector_field: 3D array of shape (height, width, 2) representing a 2D field of vectors.
+        region: Tuple (y, x, height, width) defining the rectangular region to process.
+            y, x: Top-left coordinates of the region.
+            height, width: Dimensions of the region.
 
-    curves = draw_on_image(canvas, scale)
-    influences = compress_vector_field(
-        parse_curves(curves, shape[0]*scale, shape[1]*scale), (scale, scale)
-    )
-
-    influences_img = visualize_vector_field(influences)
-    cv2.imshow("Influences", influences_img)
-
-    vector_field = diffuse_vector_field(influences)
-
-    vector_field_imgs = visualize_vector_field(vector_field)
-    cv2.imshow("Vector field", vector_field_imgs)
-
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    Returns:
+        np.ndarray: A single 2D vector representing the average of all vectors in the region.
+    """
+    y, x, height, width = region
+    # Extract the vectors in the specified rectangular region
+    area = vector_field[y:y+height, x:x+width, :]
+    # Flatten the 2D grid of vectors into a 1D array of vectors, then average
+    return average_vector(area.reshape(height * width, 2))

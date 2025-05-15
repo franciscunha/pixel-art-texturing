@@ -2,70 +2,11 @@ import random
 import cv2
 import numpy as np
 
-from annotations import area_vector, compress_vector_field, draw_on_image, parse_curves
-from visualizations import visualize_vector_field, show_scaled
-from random_placement import place_pattern
-
-
-def quantize_direction(direction: np.ndarray) -> np.ndarray:
-    """
-    Find the closest cardinal or diagonal direction to the input vector.
-
-    This function quantizes a 2D vector to the nearest of 8 possible directions:
-    - 4 cardinal directions: up, right, down, left (0,1), (1,0), (0,-1), (-1,0)
-    - 4 diagonal directions: (±0.7071, ±0.7071) which are normalized versions of (±1, ±1)
-
-    Args:
-        direction: A 2D vector (numpy array of shape (2,)) representing a direction.
-
-    Returns:
-        np.ndarray: An integer vector (either cardinal or diagonal) representing 
-        the closest standard direction. Returns [0, 0] if no valid direction is found.
-
-    Notes:
-        - Directions are matched based on the dot product (cosine similarity).
-        - For normalized input vectors, the dot product is maximized (closer to 1)
-          when the directions are similar.
-        - The function returns integer coordinates (-1, 0, or 1 for each component).
-    """
-    # Define the 8 standard directions (all normalized to unit length)
-    standard_directions = [
-        np.array([-0.7071, -0.7071]),  # Northwest
-        np.array([-1, 0]),             # West
-        np.array([-0.7071, 0.7071]),   # Southwest
-        np.array([0, -1]),             # North
-        np.array([0, 1]),              # South
-        np.array([0.7071, -0.7071]),   # Northeast
-        np.array([1, 0]),              # East
-        np.array([0.7071, 0.7071])     # Southeast
-    ]
-
-    # We know this to be a lower bound for similarity, so we can skip a few comparisons
-    # Cannot take higher lower bound because no guarantee vector is unitary
-    # (dot = 0 if two vectors are 90 degrees apart)
-    best_similarity = 0
-    best_direction = None
-
-    for candidate in standard_directions:
-        # Calculate dot product as a measure of similarity
-        similarity = np.dot(candidate, direction)
-
-        # If directions are nearly identical (accounting for floating point errors)
-        if abs(similarity - 1) < 1e-4:
-            best_direction = candidate
-            break
-
-        # Update best match if this similarity is higher
-        if similarity > best_similarity:
-            best_similarity = similarity
-            best_direction = candidate
-
-    # If no valid direction found, return zero vector
-    if best_direction is None:
-        return np.array([0, 0])
-
-    # Convert the floating-point direction to integers (-1, 0, or 1)
-    return np.round(best_direction).astype(np.int8)
+from annotations import draw_on_image, parse_curves
+from placement import place_pattern
+from vector_field import area_vector, compress_vector_field
+from vector_helpers import quantize_direction
+from visualizations import show_scaled, visualize_vector_field
 
 
 def place_patterns_within_boundary(

@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import random
 
+from placement import place_pattern
 from visualizations import show_scaled
 
 
@@ -90,80 +91,6 @@ def place_random_singular_pattern_within_boundary(
     print(
         f"Placed {patterns_placed} patterns out of {num_patterns} requested (in {attempts} attempts)")
     return result
-
-
-def get_similar_color(base: cv2.Mat, rect: tuple[int, int, int, int], hsv_shift: tuple[int, int, int]):
-    """
-    Gets the average color of a region of an image, then shifts it.
-
-    Args:
-        base: Image to extract color from
-        rect: Boundaries of image region, layout is x y w h
-        hsv_shift: How much to shift the color by, in HSV color space
-
-    Returns: The average color, shifted, in BGR color space
-    """
-    y, x, h, w = rect
-    # Get the region of interest and its average color
-    roi_per_channel = [base[y: y + h, x: x + w, i] for i in range(4)]
-    mean_color_bgr = [int(np.round(np.mean(roi_per_channel[i])))
-                      for i in range(4)]
-
-    # Convert BGR to HSV
-    mean_color_hsv = cv2.cvtColor(
-        np.uint8([[mean_color_bgr]]), cv2.COLOR_BGR2HSV)[0][0]
-
-    # Apply the shift converting to int32 to allow for negative values in parameter
-    shifted_hsv = \
-        mean_color_hsv.astype(np.int32) + np.array(hsv_shift, dtype=np.int32)
-
-    # Wrap around H channel
-    shifted_hsv[0] = shifted_hsv[0] % 180
-
-    # Clip S and V channels to valid range
-    shifted_hsv[1] = np.clip(shifted_hsv[1], 0, 255)
-    shifted_hsv[2] = np.clip(shifted_hsv[2], 0, 255)
-
-    # Convert back to uint8 for OpenCV
-    shifted_hsv_uint8 = shifted_hsv.astype(np.uint8)
-
-    # Conversions are for images, so we use single pixel images for the conversions
-    # Extract that pixel's color to return
-    shifted_color_bgr = cv2.cvtColor(
-        np.uint8([[shifted_hsv_uint8]]), cv2.COLOR_HSV2BGR)[0][0]
-
-    return shifted_color_bgr
-
-
-def monochromize_image(img: cv2.Mat, color: np.ndarray):
-    if color.shape != (3,):
-        raise ValueError(f"{color} is not a color")
-    img[:, :, :3] = color
-
-
-def place_pattern(destination: cv2.Mat, pattern: cv2.Mat, y: int, x: int, hsv_shift: tuple[int, int, int] | None = None):
-    # Boundary check
-    h, w = pattern.shape[:2]
-    if y + h > destination.shape[0] or x + w > destination.shape[1]:
-        return False
-
-    # Extract alpha
-    pattern_alpha = pattern[:, :, 3] / 255.0
-    if hsv_shift is not None:
-        color = get_similar_color(destination, (y, x, h, w), hsv_shift)
-        monochromize_image(pattern, color)
-
-    # TODO pattern should inherit base's alpha in final placement
-
-    # Placing
-    region_of_interest = destination[y: y + h, x: x + w, :3]
-    for c in range(3):
-        # implicit double for loop due to numpy
-        destination[y: y + h, x: x + w, c] = \
-            (1 - pattern_alpha) * region_of_interest[:, :, c] \
-            + pattern_alpha * pattern[:, :, c]
-
-    return True
 
 
 def main():

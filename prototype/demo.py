@@ -2,9 +2,10 @@ import cv2
 import numpy as np
 
 from annotated_placement import place_patterns_within_boundary, split_oriented_spritesheet
-from annotations import compress_vector_field, draw_on_image, parse_curves
-from visualizations import visualize_vector_field, show_scaled
-from vector_field import diffuse_vector_field
+from annotations import draw_on_image, parse_curves
+from diffusion import diffuse_vector_field
+from vector_field import compress_vector_field
+from visualizations import show_scaled, visualize_vector_field
 
 
 show_annotations = False
