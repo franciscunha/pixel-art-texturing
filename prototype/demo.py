@@ -13,15 +13,16 @@ show_annotations = False
 show_vector_field = True
 grid_scale = (4, 4)
 
-boundary_mask_padding = 2
+boundary_mask_padding = 0
 num_patterns = 200
 hsv_shift = (0, 0, -20)
+# hsv_shift = None
 
-scale = 4
+scale = 8
 
-base_file = "data/shaded_tree.png"
+base_file = "data/green_sphere_whitebg.png"
 pattern_sheet_file = "data/slynrd_leaf_spritesheet.png"
-boundary_file = "data/shaded_tree_canopy_full_boundary.png"
+boundary_file = "data/sphere_boundary.png"
 
 base = cv2.imread(base_file, cv2.IMREAD_UNCHANGED)
 pattern_sheet = cv2.imread(pattern_sheet_file, cv2.IMREAD_UNCHANGED)
@@ -29,11 +30,12 @@ if boundary_file is None:
     boundary = np.full_like(base, 255)
 else:
     boundary = cv2.imread(boundary_file, cv2.IMREAD_UNCHANGED)
-    if boundary.shape != base.shape:
-        raise ValueError("Boundary has to be the same size as base")
 
 if base is None or pattern_sheet is None or boundary is None:
     raise FileNotFoundError()
+
+if boundary.shape != base.shape:
+    raise ValueError("Boundary has to be the same size as base")
 
 shape = base.shape[:2]
 patterns = split_oriented_spritesheet(pattern_sheet)
