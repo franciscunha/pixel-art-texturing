@@ -34,7 +34,7 @@ def draw_grid(cell_size, grid_height, grid_width, background_color=(255, 255, 25
     return grid_image
 
 
-def visualize_vector_field(vec_field: np.array, scalar_field: np.array = None, cell_size: int = 24):
+def visualize_vector_field(vec_field: np.array, input_vector_coords: list[tuple[int, int]] = [], scalar_field: np.array = None, cell_size: int = 24):
     """
     Visualize a vector field. The input array should have shape (h, w, 2),
     where vec_field[y, x] contains the (dx, dy) vector at position (x, y).
@@ -67,7 +67,10 @@ def visualize_vector_field(vec_field: np.array, scalar_field: np.array = None, c
                 start[1] + vec[1] * center_offset
             ], dtype=np.float64)
 
-            draw_arrow(img, start, end, (255, 0, 0), 3)
+            color = \
+                (0, 0, 255) if (y, x) in input_vector_coords else (255, 0, 0)
+
+            draw_arrow(img, start, end, color, 3)
 
             if scalar_field is not None:
                 start_point = (

@@ -48,8 +48,16 @@ annotations = compress_vector_field(
 vector_field = diffuse_vector_field(annotations)
 
 if show_vector_field:
+    annotations_compressed = compress_vector_field(annotations, grid_scale)
+    annotated_coords = [(y, x)
+                        for y, x in np.ndindex(annotations_compressed.shape[:2])
+                        if np.any(annotations_compressed[y, x] != 0)]
+
     vector_field_img = visualize_vector_field(
-        compress_vector_field(vector_field, grid_scale))
+        compress_vector_field(vector_field, grid_scale),
+        input_vector_coords=annotated_coords
+    )
+
     cv2.imshow("Vector field", vector_field_img)
 
 if show_annotations:
