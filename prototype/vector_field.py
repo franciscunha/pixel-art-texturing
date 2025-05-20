@@ -25,6 +25,10 @@ def compress_vector_field(vector_field: np.ndarray, window_size: tuple[int, int]
     window_height, window_width = window_size
     height, width, _ = vector_field.shape
 
+    # Skip if no compression is asked for
+    if window_height == 1 and window_width == 1:
+        return vector_field
+
     # Check if the vector field can be evenly divided into windows
     if height % window_height != 0 or width % window_width != 0:
         raise ValueError(
