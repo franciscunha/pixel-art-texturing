@@ -1,3 +1,4 @@
+from math import ceil
 import cv2
 import numpy as np
 
@@ -43,6 +44,7 @@ def visualize_vector_field(vec_field: np.array, input_vector_coords: list[tuple[
     if vec_shape != 2:
         raise ValueError("Expected shape (h, w, 2)")
 
+    arrow_size = ceil(cell_size / 8)
     center_offset = cell_size / 2
     # img = np.zeros((h * cell_size, w * cell_size, 4), np.uint8)
     img = draw_grid(cell_size, h, w)
@@ -70,7 +72,7 @@ def visualize_vector_field(vec_field: np.array, input_vector_coords: list[tuple[
             color = \
                 (0, 0, 255) if (y, x) in input_vector_coords else (255, 0, 0)
 
-            draw_arrow(img, start, end, color, 3)
+            draw_arrow(img, start, end, color, arrow_size)
 
             if scalar_field is not None:
                 start_point = (
