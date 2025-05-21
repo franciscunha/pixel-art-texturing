@@ -11,7 +11,16 @@ def change_color_space(color, cv2_conversion_code):
     return cv2.cvtColor(np.uint8([[color]]), cv2_conversion_code)[0][0]
 
 
-def area_average_color(base: cv2.Mat, rect: tuple[int, int, int, int]):
+def area_mode_color(base: cv2.Mat, rect: tuple[int, int, int, int]):
+    y, x, h, w = rect
+    roi = base[y: y + h, x: x + w, :]
+    colors, counts = np.unique(
+        roi.reshape(-1, roi.shape[-1]), axis=0, return_counts=True)
+    mode_index = np.argmax(counts)
+    return colors[mode_index]
+
+
+def area_mean_color(base: cv2.Mat, rect: tuple[int, int, int, int]):
     y, x, h, w = rect
     # Get the region of interest and its average color
     roi_per_channel = [base[y: y + h, x: x + w, i] for i in range(4)]
@@ -29,7 +38,7 @@ def get_shifted_color(base: cv2.Mat, rect: tuple[int, int, int, int], hsv_shift:
 
     Returns: The average color, shifted, in BGR color space
     """
-    mean_color_bgr = area_average_color(base, rect)
+    mean_color_bgr = area_mean_color(base, rect)
     mean_color_hsv = change_color_space(mean_color_bgr, cv2.COLOR_BGR2HSV)
 
     # Apply the shift converting to int32 to allow for negative values in parameter
@@ -77,11 +86,6 @@ def find_closest_color(target: np.ndarray, palette: np.ndarray, exclude: np.ndar
     target_uniform = change_color_space(target, cv2.COLOR_BGR2LUV)
     palette_uniform = [change_color_space(color, cv2.COLOR_BGR2LUV)
                        for color in palette]
-
-    for color_a in palette_uniform:
-        for color_b in palette_uniform:
-            print(
-                f"Distance between {color_a} and {color_b} is {np.linalg.norm(color_a - color_b)}")
 
     for i in range(len(palette_uniform)):
         if np.any(np.all(palette[i] == exclude, axis=1)):
