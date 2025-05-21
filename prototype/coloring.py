@@ -3,6 +3,14 @@ import cv2
 import numpy as np
 
 
+def change_color_space(color, cv2_conversion_code):
+    if len(color) != 3 and len(color) != 4:
+        raise ValueError("Color should be an array-like with 3 or 4 elements")
+    # Conversions are for images, so we use single pixel images for the conversions
+    # Extract that pixel's color to return
+    return cv2.cvtColor(np.uint8([[color]]), cv2_conversion_code)[0][0]
+
+
 def area_average_color(base: cv2.Mat, rect: tuple[int, int, int, int]):
     y, x, h, w = rect
     # Get the region of interest and its average color
@@ -22,10 +30,7 @@ def get_shifted_color(base: cv2.Mat, rect: tuple[int, int, int, int], hsv_shift:
     Returns: The average color, shifted, in BGR color space
     """
     mean_color_bgr = area_average_color(base, rect)
-
-    # Convert BGR to HSV
-    mean_color_hsv = cv2.cvtColor(
-        np.uint8([[mean_color_bgr]]), cv2.COLOR_BGR2HSV)[0][0]
+    mean_color_hsv = change_color_space(mean_color_bgr, cv2.COLOR_BGR2HSV)
 
     # Apply the shift converting to int32 to allow for negative values in parameter
     shifted_hsv = \
@@ -41,10 +46,8 @@ def get_shifted_color(base: cv2.Mat, rect: tuple[int, int, int, int], hsv_shift:
     # Convert back to uint8 for OpenCV
     shifted_hsv_uint8 = shifted_hsv.astype(np.uint8)
 
-    # Conversions are for images, so we use single pixel images for the conversions
-    # Extract that pixel's color to return
-    shifted_color_bgr = cv2.cvtColor(
-        np.uint8([[shifted_hsv_uint8]]), cv2.COLOR_HSV2BGR)[0][0]
+    shifted_color_bgr = change_color_space(
+        shifted_hsv_uint8, cv2.COLOR_HSV2RGB)
 
     return shifted_color_bgr
 
@@ -56,35 +59,42 @@ def monochromize_image(img: cv2.Mat, color: np.ndarray):
 
 
 def extract_palette(img: cv2.Mat):
-    return np.unique(img.reshape(-1, img.shape[-1]), axis=0)
+    palette = np.unique(img.reshape(-1, img.shape[-1]), axis=0)
+    no_transparent = palette[palette[:, 3] > 0]
+    return no_transparent
 
 
 def find_closest_color(target: np.ndarray, palette: np.ndarray, exclude: np.ndarray = []):
     """
-    Find color in palette with lowest Euclidean distance to target color.
+    Find color in palette with lowest Euclidean distance to target color in CIELab space.
     """
-    # Euclidean distance seems to be a metric that is generally used
-    # (see https://en.wikipedia.org/wiki/Color_difference#sRGB) but I
-    # wonder if there's something better (which I can cite!)
-
-    # TODO turns out it doesn't work as well as I'd expect
-    # TODO I could maybe get the palette only from within the boundary,
-    # TODO or convert to HSV and find closest prioritizing V then S then H
+    # Euclidean distance is acceptable if we use a uniform color space
+    # https://en.wikipedia.org/wiki/Color_difference#Uniform_color_spaces
 
     best_distance = np.inf
     closest_color = None
 
-    for color in palette:
-        if np.any(np.all(color == exclude, axis=1)):
-            # equivalent to `color in exlude` if using python lists instead of ndarrays
+    target_uniform = change_color_space(target, cv2.COLOR_BGR2LUV)
+    palette_uniform = [change_color_space(color, cv2.COLOR_BGR2LUV)
+                       for color in palette]
+
+    for color_a in palette_uniform:
+        for color_b in palette_uniform:
+            print(
+                f"Distance between {color_a} and {color_b} is {np.linalg.norm(color_a - color_b)}")
+
+    for i in range(len(palette_uniform)):
+        if np.any(np.all(palette[i] == exclude, axis=1)):
+            # equivalent to `palette[i] in exlude`
+            # if using python lists instead of ndarrays
             continue
-        distance = np.linalg.norm(target - color)
+        distance = np.linalg.norm(target_uniform - palette_uniform[i])
         if distance >= best_distance:
             continue
         best_distance = distance
-        closest_color = color
+        closest_color = palette_uniform[i]
 
-    return closest_color
+    return change_color_space(closest_color, cv2.COLOR_LUV2BGR)
 
 
 if __name__ == "__main__":
