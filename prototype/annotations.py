@@ -108,6 +108,10 @@ def parse_curves(curves: list[np.array], img_h: int, img_w: int):
     return vector_field
 
 
+def get_annotation_coords(annotations):
+    return [(y, x) for y, x in np.ndindex(annotations.shape[:2]) if np.any(annotations[y, x] != 0)]
+
+
 def main():
     # shape = cv2.imread("data/shaded_tree.png", cv2.IMREAD_UNCHANGED)
 

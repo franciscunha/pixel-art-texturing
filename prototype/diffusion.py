@@ -3,12 +3,12 @@ import numpy as np
 from scipy import sparse
 
 
-from annotations import draw_on_image, parse_curves
+from annotations import draw_on_image, get_annotation_coords, parse_curves
 from vector_field import compress_vector_field
 from visualizations import visualize_vector_field
 
 
-def solve_poisson(constraints: sparse.coo_matrix):
+def solve_poisson(constraints: sparse.coo_matrix, constrained_indexes: tuple[list[int], list[int]]):
     """
     Solve the discrete Poisson equation using SciPy's linear system solver.
     Based on Section 3.2 of Bezerra et al., 2010 (https://doi.org/10.1145/1809939.1809944).
@@ -73,7 +73,7 @@ def solve_poisson(constraints: sparse.coo_matrix):
     divergences = np.zeros(n)
 
     # Set constraints
-    nonzero_is, nonzero_js = constraints.nonzero()
+    nonzero_is, nonzero_js = constrained_indexes
     for i, j in list(zip(nonzero_is, nonzero_js)):
         idx = i * w + j
 
@@ -93,30 +93,39 @@ def solve_poisson(constraints: sparse.coo_matrix):
 
 def diffuse_vector_field(constraints: np.ndarray):
     vector_field = np.zeros_like(constraints)
+    constrained_indices = np.nonzero(constraints)[:2]
     for component in range(2):
         component_wise = sparse.coo_matrix(constraints[:, :, component])
-        vector_field[:, :, component] = solve_poisson(component_wise)
+        vector_field[:, :, component] = \
+            solve_poisson(component_wise, constrained_indices)
     return vector_field
 
 
 if __name__ == "__main__":
-    shape = (32, 32)
-    scale = 4
+    shape = (8, 8)
+    scale = 16
 
     canvas = np.zeros((shape[0], shape[1], 3), np.uint8)
 
     curves = draw_on_image(canvas, scale)
-    influences = compress_vector_field(
+    annotations = compress_vector_field(
         parse_curves(curves, shape[0]*scale, shape[1]*scale), (scale, scale)
     )
 
-    influences_img = visualize_vector_field(influences)
-    cv2.imshow("Influences", influences_img)
+    annotations_img = visualize_vector_field(annotations)
+    cv2.imshow("Influences", annotations_img)
 
-    vector_field = diffuse_vector_field(influences)
+    vector_field = diffuse_vector_field(annotations)
 
-    vector_field_imgs = visualize_vector_field(vector_field)
+    annotated_coords = get_annotation_coords(annotations)
+    vector_field_imgs = visualize_vector_field(vector_field, annotated_coords)
     cv2.imshow("Vector field", vector_field_imgs)
+
+    np.set_printoptions(precision=4, suppress=True)
+    # print("Annotations")
+    # print(annotations)
+    # print("Vector field")
+    # print(vector_field)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()

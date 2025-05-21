@@ -2,27 +2,29 @@ import cv2
 import numpy as np
 
 from annotated_placement import place_patterns_within_boundary, split_oriented_spritesheet
-from annotations import draw_on_image, parse_curves
+from annotations import draw_on_image, get_annotation_coords, parse_curves
 from diffusion import diffuse_vector_field
 from boundaries import mask_from_boundary, pad_mask
 from vector_field import compress_vector_field
 from visualizations import show_scaled, visualize_vector_field
 
 
-show_annotations = False
+show_annotations = True
 show_vector_field = True
-grid_scale = (4, 4)
+grid_scale = (1, 1)
+grid_cell_size = 24
 
 boundary_mask_padding = 0
-num_patterns = 200
-hsv_shift = (0, 0, -20)
-# hsv_shift = None
+pattern_padding = 0
+num_patterns = 100
+# hsv_shift = (0, 0, -20)
+hsv_shift = None
 
 scale = 8
 
-base_file = "data/green_sphere_whitebg.png"
-pattern_sheet_file = "data/slynrd_leaf_spritesheet.png"
-boundary_file = "data/sphere_boundary.png"
+base_file = "data/bases/green_sphere.png"
+pattern_sheet_file = "data/pattern_sheet/slynrd_leaf.png"
+boundary_file = "data/boundaries/sphere.png"
 
 base = cv2.imread(base_file, cv2.IMREAD_UNCHANGED)
 pattern_sheet = cv2.imread(pattern_sheet_file, cv2.IMREAD_UNCHANGED)
@@ -49,26 +51,27 @@ vector_field = diffuse_vector_field(annotations)
 
 if show_vector_field:
     annotations_compressed = compress_vector_field(annotations, grid_scale)
-    annotated_coords = [(y, x)
-                        for y, x in np.ndindex(annotations_compressed.shape[:2])
-                        if np.any(annotations_compressed[y, x] != 0)]
+    annotated_coords = get_annotation_coords(annotations_compressed)
 
     vector_field_img = visualize_vector_field(
         compress_vector_field(vector_field, grid_scale),
-        input_vector_coords=annotated_coords
+        input_vector_coords=annotated_coords,
+        cell_size=grid_cell_size
     )
 
     cv2.imshow("Vector field", vector_field_img)
 
 if show_annotations:
     annotations_img = visualize_vector_field(
-        compress_vector_field(annotations, grid_scale))
+        compress_vector_field(annotations, grid_scale),
+        cell_size=grid_cell_size)
     cv2.imshow("Annotations", annotations_img)
 
 mask = pad_mask(mask_from_boundary(boundary), boundary_mask_padding)
 
 result = place_patterns_within_boundary(
-    base, patterns, mask, vector_field, num_patterns=num_patterns, hsv_shift=hsv_shift)
+    base, patterns, mask, vector_field,
+    pattern_padding=pattern_padding, num_patterns=num_patterns, hsv_shift=hsv_shift)
 
 show_scaled("Output", result, scale)
 
