@@ -25,18 +25,25 @@ def pad_mask(mask: np.ndarray, padding_size: int):
     return padded
 
 
+def mask_bb(mask: np.ndarray):
+    indices = np.where(mask)
+    y_start, y_end = np.min(indices[0]), np.max(indices[0])
+    height = (y_end - y_start) + 1
+    x_start, x_end = np.min(indices[1]), np.max(indices[1])
+    width = (x_end - x_start) + 1
+    return (y_start, x_start, height, width)
+
+
 if __name__ == "__main__":
-    boundary_file = "data/shaded_tree_canopy_full_boundary.png"
+    boundary_file = "data/boundaries/sphere.png"
     boundary = cv2.imread(boundary_file, cv2.IMREAD_UNCHANGED)
     scale = 4
 
     mask = mask_from_boundary(boundary)
-    padded1 = pad_mask(mask, 1)
-    padded2 = pad_mask(mask, 2)
+    y, x, h, w = mask_bb(mask)
 
-    masks = visualize_mask(mask, 0) + visualize_mask(padded1,
-                                                     1) + visualize_mask(padded2, 2)
-    show_scaled("overlaid", masks, scale)
+    show_scaled("boundary", boundary, scale)
+    show_scaled("bb", boundary[y:y+h, x:x+w], scale)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
