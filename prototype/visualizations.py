@@ -113,3 +113,12 @@ def visualize_mask(mask, channel):
     vis_mask[:, :, 3] = mask.astype(np.uint8) * 255  # Alpha channel
     vis_mask[:, :, channel] = mask.astype(np.uint8) * 255
     return vis_mask
+
+
+def color_mapping(image, func):
+    h, w, _ = image.shape
+    mapped = np.zeros_like(image)
+    for y in range(h):
+        for x in range(w):
+            mapped[y, x] = func(image, (x, y))
+    return mapped

@@ -4,13 +4,15 @@ import numpy as np
 from annotated_placement import place_patterns_within_boundary, split_oriented_spritesheet
 from annotations import draw_on_image, get_annotation_coords, parse_curves
 from diffusion import diffuse_vector_field
-from boundaries import mask_from_boundary, pad_mask
+from boundaries import mask_bb, mask_from_boundary, pad_mask
+from coloring import dominant_border_color
 from vector_field import compress_vector_field
-from visualizations import show_scaled, visualize_vector_field
+from visualizations import color_mapping, show_scaled, visualize_vector_field
 
+show_border_colors = True
 
-show_annotations = True
-show_vector_field = True
+show_annotations = False
+show_vector_field = False
 grid_scale = (1, 1)
 grid_cell_size = 24
 
@@ -67,7 +69,14 @@ if show_annotations:
         cell_size=grid_cell_size)
     cv2.imshow("Annotations", annotations_img)
 
+if show_border_colors:
+    border_colors_img = color_mapping(base, dominant_border_color)
+    show_scaled("Border colors", border_colors_img, scale)
+
+# TODO handle everything only inside bb
+
 mask = pad_mask(mask_from_boundary(boundary), boundary_mask_padding)
+bb = mask_bb(mask)
 
 result = place_patterns_within_boundary(
     base, patterns, mask, vector_field,

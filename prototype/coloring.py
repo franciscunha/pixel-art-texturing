@@ -2,6 +2,8 @@
 import cv2
 import numpy as np
 
+from visualizations import color_mapping, show_scaled
+
 
 def change_color_space(color, cv2_conversion_code):
     if len(color) != 3 and len(color) != 4:
@@ -11,13 +13,28 @@ def change_color_space(color, cv2_conversion_code):
     return cv2.cvtColor(np.uint8([[color]]), cv2_conversion_code)[0][0]
 
 
+def color_frequency(image: cv2.Mat):
+    return np.unique(image.reshape(-1, image.shape[-1]), axis=0, return_counts=True)
+
+
+def mode_color(image: cv2.Mat):
+    colors, counts = color_frequency(image)
+    # Color indices sorted by count, decreasing
+    sorted_indices = np.flip(np.argsort(counts))
+
+    # Iterate through indices so we can skip transparent colors
+    for i in sorted_indices:
+        if colors[i][3] > 0:
+            return colors[i]
+
+    # If all colors are transparent, return the most frequent anyway
+    return colors[sorted_indices[0]]
+
+
 def area_mode_color(base: cv2.Mat, rect: tuple[int, int, int, int]):
     y, x, h, w = rect
     roi = base[y: y + h, x: x + w, :]
-    colors, counts = np.unique(
-        roi.reshape(-1, roi.shape[-1]), axis=0, return_counts=True)
-    mode_index = np.argmax(counts)
-    return colors[mode_index]
+    return mode_color(roi)
 
 
 def area_mean_color(base: cv2.Mat, rect: tuple[int, int, int, int]):
@@ -101,8 +118,32 @@ def find_closest_color(target: np.ndarray, palette: np.ndarray, exclude: np.ndar
     return change_color_space(closest_color, cv2.COLOR_LUV2BGR)
 
 
-if __name__ == "__main__":
-    base_file = "data/shaded_tree.png"
-    base = cv2.imread(base_file, cv2.IMREAD_UNCHANGED)
+def dominant_border_color(image: cv2.Mat, start_point: tuple[int, int]):
+    bgr = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+    _, _, mask, _ = cv2.floodFill(bgr, None, start_point, (255, 255, 255))
+    # Mask for both the flooded region and the pixels that border it
+    mask_with_borders = cv2.dilate(mask[1:-1, 1:-1], np.ones((3, 3)))
+    # Mask for only the pixels that border the flooded region
+    borders_mask = cv2.bitwise_xor(mask[1:-1, 1:-1], mask_with_borders)
+    # Mask out the original image
+    borders = cv2.bitwise_and(image, image, mask=borders_mask)
+    # Most frequent color in borders
+    return mode_color(borders)
 
-    palette = extract_palette(base)
+
+if __name__ == "__main__":
+    base = cv2.imread("data/bases/green_sphere.png", cv2.IMREAD_UNCHANGED)
+    scale = 6
+
+    mapped = color_mapping(base, dominant_border_color)
+
+    show_scaled("Original", base, scale)
+    show_scaled("Mapped", mapped, scale)
+
+    # def callback(event, x, y, flags, _param):
+    #     if event == cv2.EVENT_LBUTTONDOWN:
+    #         print(f"Clicked {(x/scale, y/scale)}")
+    # cv2.setMouseCallback("Original", callback)
+
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
