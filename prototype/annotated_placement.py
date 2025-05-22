@@ -81,9 +81,8 @@ def place_patterns_within_boundary(
             area_vector(vector_field, (y0, x0, pattern_width, pattern_height))
 
         # Choose appropriate pattern according to direction
-        # TODO swapped coords here might be an issue
-        pattern_dir_y, pattern_dir_x = quantize_direction(area_dir)
-        pattern = patterns[pattern_dir_y+1, pattern_dir_x+1]
+        pattern_dir_x, pattern_dir_y = quantize_direction(area_dir)
+        pattern = patterns[pattern_dir_x+1, pattern_dir_y+1]
 
         # Ignore placements without a direction
         if pattern_dir_y == 0 and pattern_dir_x == 0:
@@ -110,7 +109,7 @@ def place_patterns_within_boundary(
         # print(f"Placed pattern #{patterns_placed} direction {(pattern_dir_x, pattern_dir_y)} at ({x0}, {y0})")
 
     print(
-        f"Placed {patterns_placed} patterns out of {num_patterns} requested (in {attempts} attempts, {no_dir_count} had no direction)")
+        f"Placed {patterns_placed} patterns out of {num_patterns} requested (in {attempts} attempts, remaining valid positions: {bool(valid_positions)})")
     return result
 
 
