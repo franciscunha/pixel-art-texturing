@@ -9,6 +9,57 @@ def show_scaled(title: str, img: cv2.Mat, factor: int):
     cv2.imshow(title, scaled)
 
 
+def highlight_pixels(image: cv2.Mat, scale_factor: int, pixel_coords: list[tuple[int, int]], border_thickness=1, border_color=(0, 0, 255)):
+    """
+    Scale an image and place borders around specified pixels.
+    """
+    # Validate inputs
+    if image is None or image.size == 0:
+        raise ValueError("Invalid input image")
+
+    if scale_factor <= 0:
+        raise ValueError("Scale factor must be positive")
+
+    # Get original image dimensions
+    original_height, original_width = image.shape[:2]
+
+    # Scale the image
+    new_width = int(original_width * scale_factor)
+    new_height = int(original_height * scale_factor)
+    scaled_image = cv2.resize(
+        image, (new_width, new_height), interpolation=cv2.INTER_NEAREST)
+
+    # Create a copy to draw borders on
+    result_image = scaled_image.copy()
+
+    # Draw red borders around scaled pixel coordinates
+    for x, y in pixel_coords:
+
+        # Validate original coordinates
+        if x < 0 or x >= original_width or y < 0 or y >= original_height:
+            print(
+                f"Warning: Coordinate ({x}, {y}) is outside original image bounds")
+            continue
+
+        # Scale the coordinates
+        scaled_x = int(x * scale_factor)
+        scaled_y = int(y * scale_factor)
+
+        # Calculate rectangle coordinates to represent one scaled pixel
+        pixel_size = max(1, int(scale_factor))
+
+        x1 = scaled_x
+        y1 = scaled_y
+        x2 = min(new_width - 1, scaled_x + pixel_size - 1)
+        y2 = min(new_height - 1, scaled_y + pixel_size - 1)
+
+        # Draw red rectangle border around the scaled pixel
+        cv2.rectangle(result_image, (x1, y1), (x2, y2),
+                      border_color, border_thickness)
+
+    return result_image
+
+
 def draw_grid(cell_size, grid_height, grid_width, background_color=(255, 255, 255), line_color=(0, 0, 0), line_thickness=1):
     # Written by Claude
 
@@ -122,3 +173,17 @@ def color_mapping(image, func):
         for x in range(w):
             mapped[y, x] = func(image, (x, y))
     return mapped
+
+
+if __name__ == "__main__":
+    img = cv2.imread('data/bases/green_sphere.png')
+    scale = 12
+
+    coords_to_highlight = [(10, 7), (11, 7)]
+
+    result = highlight_pixels(img, scale, coords_to_highlight)
+
+    show_scaled('Original', img, scale)
+    cv2.imshow('Scaled with Borders', result)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
