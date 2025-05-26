@@ -2,7 +2,8 @@
 import cv2
 import numpy as np
 
-from visualizations import color_mapping, show_scaled
+from boundaries import mask_from_boundary
+from visualizations import show_scaled
 
 
 def change_color_space(color, cv2_conversion_code):
@@ -79,7 +80,7 @@ def get_shifted_color(base: cv2.Mat, rect: tuple[int, int, int, int], hsv_shift:
 
 
 def monochromize_image(img: cv2.Mat, color: np.ndarray):
-    if color.shape != (3,) and color.shape != (4,):
+    if len(color) != 3 and len(color) != 4:
         raise ValueError(f"{color} is not a color")
     img[:, :, :3] = color[:3]
 
@@ -115,35 +116,92 @@ def find_closest_color(target: np.ndarray, palette: np.ndarray, exclude: np.ndar
         best_distance = distance
         closest_color = palette_uniform[i]
 
-    return change_color_space(closest_color, cv2.COLOR_LUV2BGR)
+    color_with_alpha = np.zeros((4), dtype=np.uint8)
+    color_with_alpha[:3] = change_color_space(closest_color, cv2.COLOR_LUV2BGR)
+    color_with_alpha[3] = 255
+    return color_with_alpha
 
 
 def dominant_border_color(image: cv2.Mat, start_point: tuple[int, int]):
     bgr = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
-    _, _, mask, _ = cv2.floodFill(bgr, None, start_point, (255, 255, 255))
+    _, _, mask_padded, _ = cv2.floodFill(
+        bgr, None, start_point, (255, 255, 255))
+    mask = mask_padded[1:-1, 1:-1]
+
     # Mask for both the flooded region and the pixels that border it
-    mask_with_borders = cv2.dilate(mask[1:-1, 1:-1], np.ones((3, 3)))
+    mask_with_borders = cv2.dilate(mask, np.ones((3, 3)))
+
     # Mask for only the pixels that border the flooded region
-    borders_mask = cv2.bitwise_xor(mask[1:-1, 1:-1], mask_with_borders)
+    borders_mask = cv2.bitwise_xor(mask, mask_with_borders)
+
     # Mask out the original image
     borders = cv2.bitwise_and(image, image, mask=borders_mask)
-    # Most frequent color in borders
-    return mode_color(borders)
+
+    # Most frequent color in borders, mask for pixels where this applies
+    return mode_color(borders), mask
+
+
+def color_map_by_similarity(image: cv2.Mat, mask: np.ndarray):
+    if image.shape[:2] != mask.shape[:2]:
+        raise ValueError("Image and mask don't match")
+
+    colors = np.copy(image)
+    palette = extract_palette(image)
+    ys, xs = np.where(mask)
+
+    for i in range(len(ys)):
+        y, x = ys[i], xs[i]
+        target = image[y, x]
+        colors[y, x] = find_closest_color(target, palette, exclude=[target])
+
+    return colors
+
+
+def color_map_by_shared_border(image: cv2.Mat, mask: np.ndarray):
+    if image.shape[:2] != mask.shape[:2]:
+        raise ValueError("Image and mask don't match")
+
+    filled = np.zeros_like(mask, dtype=np.uint8)
+    colors = np.copy(image)
+    ys, xs = np.where(mask)
+
+    for i in range(len(ys)):
+        y, x = ys[i], xs[i]
+
+        if filled[y, x] > 0:
+            continue
+
+        color, filled_this_iter = dominant_border_color(image, (x, y))
+
+        colors[filled_this_iter == True, :] = color
+        filled = filled + filled_this_iter
+
+    return colors
+
+
+def color_map(image: cv2.Mat, mask: np.ndarray, type: str = "border"):
+    if type == "similarity":
+        return color_map_by_similarity(image, mask)
+    elif type == "border":
+        return color_map_by_shared_border(image, mask)
+    else:
+        raise ValueError("Type must be 'similarity' or 'border'")
 
 
 if __name__ == "__main__":
     base = cv2.imread("data/bases/green_sphere.png", cv2.IMREAD_UNCHANGED)
-    scale = 6
+    mask = mask_from_boundary(
+        cv2.imread("data/bases/green_sphere.png", cv2.IMREAD_UNCHANGED))
 
-    mapped = color_mapping(base, dominant_border_color)
+    scale = 12
 
     show_scaled("Original", base, scale)
-    show_scaled("Mapped", mapped, scale)
 
-    # def callback(event, x, y, flags, _param):
-    #     if event == cv2.EVENT_LBUTTONDOWN:
-    #         print(f"Clicked {(x/scale, y/scale)}")
-    # cv2.setMouseCallback("Original", callback)
+    mapped_border = color_map(base, mask, type="border")
+    mapped_similarity = color_map(base, mask, type="similarity")
+
+    show_scaled("Border", mapped_border, scale)
+    show_scaled("Similarity", mapped_similarity, scale)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()

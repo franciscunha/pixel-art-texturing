@@ -18,7 +18,8 @@ def place_patterns_within_boundary(
         pattern_padding=0,
         num_patterns=20,
         max_attempts=1000,
-        hsv_shift: tuple[int, int, int] | None = None):
+        hsv_shift: tuple[int, int, int] | None = None,
+        color_map: cv2.Mat | None = None):
     """
     Place random patterns within the boundary using a mask to track available space.
 
@@ -90,7 +91,7 @@ def place_patterns_within_boundary(
             continue
 
         # Place the pattern
-        success = place_pattern(result, pattern, y0, x0, hsv_shift)
+        success = place_pattern(result, pattern, y0, x0, hsv_shift, color_map)
 
         if not success:
             continue

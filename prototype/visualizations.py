@@ -166,7 +166,7 @@ def visualize_mask(mask, channel):
     return vis_mask
 
 
-def color_mapping(image, func):
+def pixel_map(image, func):
     h, w, _ = image.shape
     mapped = np.zeros_like(image)
     for y in range(h):
