@@ -32,15 +32,16 @@ show_color_map = True
 hsv_shift = None
 # color_mode = "similarity"
 color_mode = "border"
+excluded_colors = np.array([[0, 0, 0, 255]])
 
 # Visualization
-scale = 6
+scale = 2
 
 #! Loading images
 
-base_file = "data/bases/trunk_unpatterned.png"
-pattern_sheet_file = "data/pattern_sheet/bark_scale.png"
-boundary_file = "data/boundaries/trunk_partial.png"
+base_file = "data/bases/deerfox.png"
+pattern_sheet_file = "data/pattern_sheet/thin_fur.png"
+boundary_file = "data/boundaries/deerfox_chest.png"
 
 base = cv2.imread(base_file, cv2.IMREAD_UNCHANGED)
 pattern_sheet = cv2.imread(pattern_sheet_file, cv2.IMREAD_UNCHANGED)
@@ -95,7 +96,7 @@ if show_annotations:
 #! Coloring
 
 if hsv_shift is None:
-    colors = color_map(base, mask, color_mode)
+    colors = color_map(base, mask, exclude=excluded_colors, type=color_mode)
 
     if show_color_map:
         show_scaled("Color map", colors, scale)

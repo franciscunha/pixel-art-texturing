@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 
 from boundaries import mask_from_boundary
+from helpers import flood_fill_mask
 from visualizations import show_scaled
 
 
@@ -18,14 +19,15 @@ def color_frequency(image: cv2.Mat):
     return np.unique(image.reshape(-1, image.shape[-1]), axis=0, return_counts=True)
 
 
-def mode_color(image: cv2.Mat):
+def mode_color(image: cv2.Mat, exclude: np.ndarray = []):
     colors, counts = color_frequency(image)
     # Color indices sorted by count, decreasing
     sorted_indices = np.flip(np.argsort(counts))
 
     # Iterate through indices so we can skip transparent colors
     for i in sorted_indices:
-        if colors[i][3] > 0:
+        # if not transparent and not in exclude list
+        if colors[i][3] > 0 and not np.any(np.all(colors[i] == exclude, axis=1)):
             return colors[i]
 
     # If all colors are transparent, return the most frequent anyway
@@ -122,42 +124,47 @@ def find_closest_color(target: np.ndarray, palette: np.ndarray, exclude: np.ndar
     return color_with_alpha
 
 
-def dominant_border_color(image: cv2.Mat, start_point: tuple[int, int]):
-    bgr = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
-    _, _, mask_padded, _ = cv2.floodFill(
-        bgr, None, start_point, (255, 255, 255))
-    mask = mask_padded[1:-1, 1:-1]
-
-    # Mask for both the flooded region and the pixels that border it
-    mask_with_borders = cv2.dilate(mask, np.ones((3, 3)))
-
-    # Mask for only the pixels that border the flooded region
-    borders_mask = cv2.bitwise_xor(mask, mask_with_borders)
+def dominant_border_color(image: cv2.Mat, start_point: tuple[int, int], exclude: np.ndarray = []):
+    mask_flooded_region = flood_fill_mask(image, start_point)
+    mask_flooded_and_borders = cv2.dilate(mask_flooded_region, np.ones((3, 3)))
+    mask_borders_only = cv2.bitwise_xor(
+        mask_flooded_region, mask_flooded_and_borders)
 
     # Mask out the original image
-    borders = cv2.bitwise_and(image, image, mask=borders_mask)
+    borders = cv2.bitwise_and(image, image, mask=mask_borders_only)
 
     # Most frequent color in borders, mask for pixels where this applies
-    return mode_color(borders), mask
+    return mode_color(borders, exclude), mask_flooded_region
 
 
-def color_map_by_similarity(image: cv2.Mat, mask: np.ndarray):
+def color_map_by_similarity(image: cv2.Mat, mask: np.ndarray, exclude: np.ndarray = []):
     if image.shape[:2] != mask.shape[:2]:
         raise ValueError("Image and mask don't match")
 
+    filled = np.zeros_like(mask, dtype=np.uint8)
     colors = np.copy(image)
     palette = extract_palette(image)
     ys, xs = np.where(mask)
 
     for i in range(len(ys)):
         y, x = ys[i], xs[i]
+
+        if filled[y, x] > 0:
+            continue
+
         target = image[y, x]
-        colors[y, x] = find_closest_color(target, palette, exclude=[target])
+        color = find_closest_color(
+            target, palette, exclude=np.append(exclude, [target], axis=0))
+
+        flood_mask = flood_fill_mask(image, (x, y))
+
+        colors[flood_mask == True, :] = color
+        filled = filled + flood_mask
 
     return colors
 
 
-def color_map_by_shared_border(image: cv2.Mat, mask: np.ndarray):
+def color_map_by_shared_border(image: cv2.Mat, mask: np.ndarray, exclude: np.ndarray = []):
     if image.shape[:2] != mask.shape[:2]:
         raise ValueError("Image and mask don't match")
 
@@ -171,19 +178,19 @@ def color_map_by_shared_border(image: cv2.Mat, mask: np.ndarray):
         if filled[y, x] > 0:
             continue
 
-        color, filled_this_iter = dominant_border_color(image, (x, y))
+        color, flood_mask = dominant_border_color(image, (x, y), exclude)
 
-        colors[filled_this_iter == True, :] = color
-        filled = filled + filled_this_iter
+        colors[flood_mask == True, :] = color
+        filled = filled + flood_mask
 
     return colors
 
 
-def color_map(image: cv2.Mat, mask: np.ndarray, type: str = "border"):
+def color_map(image: cv2.Mat, mask: np.ndarray, exclude: np.ndarray = [], type: str = "border"):
     if type == "similarity":
-        return color_map_by_similarity(image, mask)
+        return color_map_by_similarity(image, mask, exclude)
     elif type == "border":
-        return color_map_by_shared_border(image, mask)
+        return color_map_by_shared_border(image, mask, exclude)
     else:
         raise ValueError("Type must be 'similarity' or 'border'")
 
