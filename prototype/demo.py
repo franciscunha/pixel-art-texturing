@@ -17,6 +17,10 @@ grid_cell_size = 24
 # Mask
 boundary_mask_padding = 0
 
+# Placement
+placement_mode = "packed"
+# placement_mode = "sampling"
+
 # Density
 pattern_padding = -1
 num_patterns = 200
@@ -32,13 +36,13 @@ color_mode = "border"
 excluded_colors = np.array([[0, 0, 0, 255]])
 
 # Visualization
-scale = 12
+scale = 6
 
 #! Loading images
 
-source_file = "data/bases/green_sphere.png"
-pattern_sheet_file = "data/pattern_sheet/slynrd_leaf.png"
-boundary_file = "data/boundaries/sphere.png"
+source_file = "data/bases/fish.png"
+pattern_sheet_file = "data/pattern_sheet/fish_scale.png"
+boundary_file = "data/boundaries/fish_body.png"
 
 source = cv2.imread(source_file, cv2.IMREAD_UNCHANGED)
 pattern_sheet = cv2.imread(pattern_sheet_file, cv2.IMREAD_UNCHANGED)
@@ -55,7 +59,7 @@ if source is None or pattern_sheet is None or boundary is None:
 #! Call the algorithm
 
 result, mask, colors, annotations, vector_field, positions =\
-    texture(source, pattern_sheet, boundary, num_patterns, boundary_mask_padding,
+    texture(source, pattern_sheet, boundary, num_patterns, placement_mode, boundary_mask_padding,
             pattern_padding, scale, excluded_colors, color_mode, hsv_shift, result_only=False)
 
 

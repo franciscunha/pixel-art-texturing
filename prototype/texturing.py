@@ -1,7 +1,7 @@
 
 import cv2
 import numpy as np
-from placement import find_pattern, place_pattern, rejection_sampling, split_oriented_spritesheet
+from placement import find_pattern, place_pattern, pattern_positions, split_oriented_spritesheet
 from annotations import draw_on_image, parse_curves
 from boundaries import mask_bb, mask_from_boundary, pad_mask
 from coloring import color_map
@@ -14,6 +14,7 @@ def texture(
     pattern_sheet: np.ndarray,
     boundary: cv2.Mat,
     num_patterns: int,
+    placement_mode: str = "sampling",
     boundary_mask_padding: int = 0,
     pattern_padding: int = 1,
     annotation_img_scale: int = 1,
@@ -57,8 +58,8 @@ def texture(
     result = source.copy()
 
     pattern_shape = patterns.shape[2:4]
-    positions = rejection_sampling(
-        mask, pattern_shape, pattern_padding, num_patterns)
+    positions = pattern_positions(
+        mask, pattern_shape, placement_mode, pattern_padding, num_patterns)
 
     for position in positions:
         pattern = find_pattern(vector_field, position, patterns)
