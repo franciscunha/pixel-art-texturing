@@ -120,8 +120,9 @@ def visualize_vector_field(vec_field: np.array, input_vector_coords: list[tuple[
                 start[1] + vec[1] * center_offset
             ], dtype=np.float64)
 
-            color = \
-                (0, 0, 255) if (y, x) in input_vector_coords else (255, 0, 0)
+            color = (0, 0, 255) \
+                if (y, x) in input_vector_coords or input_vector_coords == [] \
+                else (255, 0, 0)
 
             draw_arrow(img, start, end, color, arrow_size)
 
