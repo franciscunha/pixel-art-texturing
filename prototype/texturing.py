@@ -15,6 +15,7 @@ def texture(
     boundary: cv2.Mat,
     num_patterns: int,
     placement_mode: str = "sampling",
+    allow_partly_in_mask: bool = False,
     boundary_mask_padding: int = 0,
     pattern_padding: int = 1,
     annotation_img_scale: int = 1,
@@ -59,11 +60,11 @@ def texture(
 
     pattern_shape = patterns.shape[2:4]
     positions = pattern_positions(
-        mask, pattern_shape, placement_mode, pattern_padding, num_patterns)
+        mask, pattern_shape, placement_mode, allow_partly_in_mask, pattern_padding, num_patterns)
 
     for position in positions:
         pattern = find_pattern(vector_field, position, patterns)
-        place_pattern(result, pattern, position, hsv_shift, colors)
+        place_pattern(result, pattern, position, mask, hsv_shift, colors)
 
     #! Return
     if result_only:

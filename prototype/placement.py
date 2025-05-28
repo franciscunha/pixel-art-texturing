@@ -8,20 +8,22 @@ from coloring import get_shifted_color, monochromize_image
 
 
 def pattern_positions(
-        availability_mask: np.ndarray,
+        mask: np.ndarray,
         pattern_shape: tuple[int, int],
         type: str = "sampling",
+        allow_partly_in_mask: bool = False,
         pattern_padding: int = 0,
         num_patterns: int = 20,
         max_attempts: int = 1000):
 
     placements = []
+    availability_mask = np.full_like(mask, True, dtype=bool)
 
-    img_height, img_width = availability_mask.shape[:2]
+    img_height, img_width = mask.shape[:2]
     pattern_height, pattern_width = pattern_shape
 
     # Find all valid starting positions initially (for faster random selection)
-    valid_y, valid_x = np.where(availability_mask)
+    valid_y, valid_x = np.where(mask)
     valid_positions = list(zip(valid_x, valid_y))
 
     if not valid_positions:
@@ -47,11 +49,17 @@ def pattern_positions(
         x1, y1 = x0 + pattern_width, y0 + pattern_height
 
         # Extract the region where pattern would be placed
-        region = availability_mask[y0:y1, x0:x1]
+        region_availability = availability_mask[y0:y1, x0:x1]
+        region_masked = mask[y0:y1, x0:x1]
 
         # Check if the pattern fits image at this position
-        # and if all pixels in this region are available (True in mask)
-        if (y1 > img_height or x1 > img_width) or (not np.all(region)):
+        # and if all pixels in this region aren't already filled
+        # and if (all or any) pixels in this region are in original mask
+        in_mask = np.any(region_masked) \
+            if allow_partly_in_mask else np.all(region_masked)
+
+        if (y1 > img_height or x1 > img_width) \
+                or (not np.all(region_availability)) or (not in_mask):
             # Remove this position from consideration
             try:
                 idx = valid_positions.index((x0, y0))
@@ -178,37 +186,39 @@ def place_pattern(
         destination: cv2.Mat,
         pattern: cv2.Mat,
         point: tuple[int, int],
+        mask: np.ndarray,
         hsv_shift: tuple[int, int, int] | None = None,
         color_map: cv2.Mat | None = None):
 
-    x, y = point
+    x0, y0 = point
 
     # Boundary check
     h, w = pattern.shape[:2]
-    if y + h > destination.shape[0] or x + w > destination.shape[1]:
+    if y0 + h > destination.shape[0] or x0 + w > destination.shape[1]:
         return False
-
-    region_of_interest = destination[y: y + h, x: x + w, :]
 
     # Find pattern color
     if hsv_shift is None and color_map is None:
         raise ValueError("One of hsv_shift or color_map needs to be set")
 
     if hsv_shift is not None:
-        color = get_shifted_color(destination, (y, x, h, w), hsv_shift)
+        color = get_shifted_color(destination, (y0, x0, h, w), hsv_shift)
     if color_map is not None:
-        color = color_map[y, x]
+        color = color_map[y0, x0]
     monochromize_image(pattern, color)
 
-    # TODO pattern should inherit base's alpha in final placement
-    # Extract alpha
-    pattern_alpha = pattern[:, :, 3] / 255.0
-
     # Placing
-    for c in range(3):
-        # implicit double for loop due to numpy
-        destination[y: y + h, x: x + w, c] = \
-            (1 - pattern_alpha) * region_of_interest[:, :, c] \
-            + pattern_alpha * pattern[:, :, c]
+    # pattern_alpha = pattern[:, :, 3] / 255.0
+    # region_of_interest = destination[y0: y0 + h, x0: x0 + w, :]
+
+    for x in range(x0, x0 + w):
+        for y in range(y0, y0 + h):
+            for c in range(3):
+                if not mask[y, x]:
+                    continue
+
+                pixel = (1 - pattern[y-y0, x-x0, 3]) * destination[y, x, c] \
+                    + pattern[y-y0, x-x0, 3] * pattern[y-y0, x-x0, c]
+                destination[y, x, c] = pixel
 
     return True

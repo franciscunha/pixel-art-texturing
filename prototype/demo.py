@@ -10,9 +10,9 @@ from visualizations import show_scaled, visualize_vector_field
 
 # Vector field
 show_annotations = False
-show_vector_field = False
-grid_scale = (2, 2)
-grid_cell_size = 24
+show_vector_field = True
+grid_scale = (4, 4)
+grid_cell_size = 16
 
 # Mask
 boundary_mask_padding = 0
@@ -20,9 +20,11 @@ boundary_mask_padding = 0
 # Placement
 placement_mode = "packed"
 # placement_mode = "sampling"
+allow_partly_in_mask = True
+# allow_partly_in_mask = False
 
 # Density
-pattern_padding = -1
+pattern_padding = 0
 num_patterns = 200
 
 # Coloring
@@ -59,7 +61,7 @@ if source is None or pattern_sheet is None or boundary is None:
 #! Call the algorithm
 
 result, mask, colors, annotations, vector_field, positions =\
-    texture(source, pattern_sheet, boundary, num_patterns, placement_mode, boundary_mask_padding,
+    texture(source, pattern_sheet, boundary, num_patterns, placement_mode, allow_partly_in_mask, boundary_mask_padding,
             pattern_padding, scale, excluded_colors, color_mode, hsv_shift, result_only=False)
 
 
