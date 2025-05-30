@@ -205,7 +205,7 @@ def place_pattern(
         color = get_shifted_color(destination, (y0, x0, h, w), hsv_shift)
     if color_map is not None:
         color = color_map[y0, x0]
-    monochromize_image(pattern, color)
+    # monochromize_image(pattern, color)
 
     # Placing
     # pattern_alpha = pattern[:, :, 3] / 255.0
@@ -213,12 +213,17 @@ def place_pattern(
 
     for x in range(x0, x0 + w):
         for y in range(y0, y0 + h):
-            for c in range(3):
-                if not mask[y, x]:
-                    continue
+            if not mask[y, x]:
+                continue
 
-                pixel = (1 - pattern[y-y0, x-x0, 3]) * destination[y, x, c] \
-                    + pattern[y-y0, x-x0, 3] * pattern[y-y0, x-x0, c]
-                destination[y, x, c] = pixel
+            alpha = pattern[y-y0, x-x0, 3]
+
+            # TODO proper alpha blending
+            if alpha <= 10:
+                continue
+
+            # pixel = (1 - alpha) * destination[y, x, :] \
+            #     + alpha * color_map[y, x, :]
+            destination[y, x, :] = color_map[y, x, :]
 
     return True
