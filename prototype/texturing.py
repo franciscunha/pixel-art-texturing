@@ -48,25 +48,28 @@ def texture(
 
     #! Coloring
 
+    # TODO adapt HSV shift to also create a color mask
     if hsv_shift is None:
         colors = color_map(
             source, mask, exclude=excluded_colors, type=color_mode)
     else:
         colors = None
 
-    #! Placement
-
-    result = source.copy()
+    #! Positions 
 
     pattern_shape = patterns.shape[2:4]
     positions = pattern_positions(
         mask, pattern_shape, placement_mode, allow_partly_in_mask, pattern_padding, num_patterns)
 
+    #! Placement
+
+    result = source.copy()
     for position in positions:
         pattern = find_pattern(vector_field, position, patterns)
         place_pattern(result, pattern, position, mask, hsv_shift, colors)
 
     #! Return
+
     if result_only:
         return result
 

@@ -16,6 +16,10 @@ def pattern_positions(
         num_patterns: int = 20,
         max_attempts: int = 1000):
 
+    # TODO change num_patterns to density, which works like:
+    # TODO each time a pattern would be placed, it is only placed with possibilty = density
+    # TODO but even if it is not placed due to density, it's placement is considered occupied
+
     placements = []
     availability_mask = np.full_like(mask, True, dtype=bool)
 
@@ -221,6 +225,8 @@ def place_pattern(
             # TODO proper alpha blending
             if alpha <= 10:
                 continue
+
+            # TODO different coloring modes: per pixel or region (mode)
 
             # pixel = (1 - alpha) * destination[y, x, :] \
             #     + alpha * color_map[y, x, :]

@@ -103,8 +103,8 @@ def find_closest_color(target: np.ndarray, palette: np.ndarray, exclude: np.ndar
     best_distance = np.inf
     closest_color = None
 
-    target_uniform = change_color_space(target, cv2.COLOR_BGR2LUV)
-    palette_uniform = [change_color_space(color, cv2.COLOR_BGR2LUV)
+    target_uniform = change_color_space(target, cv2.COLOR_BGR2LAB)
+    palette_uniform = [change_color_space(color, cv2.COLOR_BGR2LAB)
                        for color in palette]
 
     for i in range(len(palette_uniform)):
@@ -119,7 +119,7 @@ def find_closest_color(target: np.ndarray, palette: np.ndarray, exclude: np.ndar
         closest_color = palette_uniform[i]
 
     color_with_alpha = np.zeros((4), dtype=np.uint8)
-    color_with_alpha[:3] = change_color_space(closest_color, cv2.COLOR_LUV2BGR)
+    color_with_alpha[:3] = change_color_space(closest_color, cv2.COLOR_LAB2BGR)
     color_with_alpha[3] = 255
     return color_with_alpha
 

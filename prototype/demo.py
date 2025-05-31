@@ -10,7 +10,7 @@ from visualizations import show_scaled, visualize_vector_field
 
 # Vector field
 show_annotations = False
-show_vector_field = True
+show_vector_field = False
 grid_scale = (4, 4)
 grid_cell_size = 16
 
@@ -24,7 +24,7 @@ allow_partly_in_mask = True
 # allow_partly_in_mask = False
 
 # Density
-pattern_padding = 0
+pattern_padding = -1
 num_patterns = 200
 
 # Coloring
