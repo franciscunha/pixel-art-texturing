@@ -10,13 +10,17 @@ from visualizations import show_scaled
 def change_color_space(color, cv2_conversion_code):
     if len(color) != 3 and len(color) != 4:
         raise ValueError("Color should be an array-like with 3 or 4 elements")
-    # Conversions are for images, so we use single pixel images for the conversions
-    # Extract that pixel's color to return
+    # Conversions are for images, so we use single pixel images for the
+    # conversions. Extract that pixel's color to return.
     return cv2.cvtColor(np.uint8([[color]]), cv2_conversion_code)[0][0]
 
 
 def color_frequency(image: cv2.Mat):
-    return np.unique(image.reshape(-1, image.shape[-1]), axis=0, return_counts=True)
+    return np.unique(
+        image.reshape(-1, image.shape[-1]),
+        axis=0,
+        return_counts=True
+    )
 
 
 def mode_color(image: cv2.Mat, exclude: np.ndarray = []):
@@ -47,7 +51,11 @@ def area_mean_color(base: cv2.Mat, rect: tuple[int, int, int, int]):
     return [int(np.round(np.mean(roi_per_channel[i]))) for i in range(4)]
 
 
-def get_shifted_color(base: cv2.Mat, rect: tuple[int, int, int, int], hsv_shift: tuple[int, int, int]):
+def get_shifted_color(
+        base: cv2.Mat,
+        rect: tuple[int, int, int, int],
+        hsv_shift: tuple[int, int, int]
+):
     """
     Gets the average color of a region of an image, then shifts it.
 
@@ -61,7 +69,8 @@ def get_shifted_color(base: cv2.Mat, rect: tuple[int, int, int, int], hsv_shift:
     mean_color_bgr = area_mean_color(base, rect)
     mean_color_hsv = change_color_space(mean_color_bgr, cv2.COLOR_BGR2HSV)
 
-    # Apply the shift converting to int32 to allow for negative values in parameter
+    # Apply the shift converting to int32 to allow
+    # for negative values in parameter
     shifted_hsv = \
         mean_color_hsv.astype(np.int32) + np.array(hsv_shift, dtype=np.int32)
 
@@ -93,9 +102,14 @@ def extract_palette(img: cv2.Mat):
     return no_transparent
 
 
-def find_closest_color(target: np.ndarray, palette: np.ndarray, exclude: np.ndarray = []):
+def find_closest_color(
+    target: np.ndarray,
+    palette: np.ndarray,
+    exclude: np.ndarray = []
+):
     """
-    Find color in palette with lowest Euclidean distance to target color in CIELab space.
+    Find color in palette with lowest Euclidean distance to 
+    target color in CIELab space.
     """
     # Euclidean distance is acceptable if we use a uniform color space
     # https://en.wikipedia.org/wiki/Color_difference#Uniform_color_spaces
@@ -124,7 +138,11 @@ def find_closest_color(target: np.ndarray, palette: np.ndarray, exclude: np.ndar
     return color_with_alpha
 
 
-def dominant_border_color(image: cv2.Mat, start_point: tuple[int, int], exclude: np.ndarray = []):
+def dominant_border_color(
+    image: cv2.Mat,
+    start_point: tuple[int, int],
+    exclude: np.ndarray = []
+):
     mask_flooded_region = flood_fill_mask(image, start_point)
     mask_flooded_and_borders = cv2.dilate(mask_flooded_region, np.ones((3, 3)))
     mask_borders_only = cv2.bitwise_xor(
@@ -137,7 +155,11 @@ def dominant_border_color(image: cv2.Mat, start_point: tuple[int, int], exclude:
     return mode_color(borders, exclude), mask_flooded_region
 
 
-def color_map_by_similarity(image: cv2.Mat, mask: np.ndarray, exclude: np.ndarray = []):
+def color_map_by_similarity(
+    image: cv2.Mat,
+    mask: np.ndarray,
+    exclude: np.ndarray = []
+):
     if image.shape[:2] != mask.shape[:2]:
         raise ValueError("Image and mask don't match")
 
@@ -164,7 +186,11 @@ def color_map_by_similarity(image: cv2.Mat, mask: np.ndarray, exclude: np.ndarra
     return colors
 
 
-def color_map_by_shared_border(image: cv2.Mat, mask: np.ndarray, exclude: np.ndarray = []):
+def color_map_by_shared_border(
+    image: cv2.Mat,
+    mask: np.ndarray,
+    exclude: np.ndarray = []
+):
     if image.shape[:2] != mask.shape[:2]:
         raise ValueError("Image and mask don't match")
 
@@ -186,7 +212,12 @@ def color_map_by_shared_border(image: cv2.Mat, mask: np.ndarray, exclude: np.nda
     return colors
 
 
-def color_map(image: cv2.Mat, mask: np.ndarray, exclude: np.ndarray = [], type: str = "border"):
+def color_map(
+    image: cv2.Mat,
+    mask: np.ndarray,
+    exclude: np.ndarray = [],
+    type: str = "border"
+):
     if type == "similarity":
         return color_map_by_similarity(image, mask, exclude)
     elif type == "border":

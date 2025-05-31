@@ -8,12 +8,15 @@ from vector_field import compress_vector_field
 from visualizations import visualize_vector_field
 
 
-def solve_poisson(constraints: sparse.coo_matrix, constrained_indexes: tuple[list[int], list[int]]):
+def solve_poisson(
+    constraints: sparse.coo_matrix,
+    constrained_indexes: tuple[list[int], list[int]]
+):
     """
     Solve the discrete Poisson equation using SciPy's linear system solver.
     Based on Section 3.2 of Bezerra et al., 2010 (https://doi.org/10.1145/1809939.1809944).
-    Note that the inputs and results are all one dimensional, such that you have to e.g.
-    call this for each color channel (or vector component).
+    Note that the inputs and results are all one dimensional, such that you have 
+    to e.g. call this for each color channel (or vector component).
 
     Args:
         constraints: Sparse matrix where each filled element constrains 
@@ -77,7 +80,8 @@ def solve_poisson(constraints: sparse.coo_matrix, constrained_indexes: tuple[lis
     for i, j in list(zip(nonzero_is, nonzero_js)):
         idx = i * w + j
 
-        # Reset row in Laplace matrix to influence only the pixel instead of also its neighbors
+        # Reset row in Laplace matrix to influence only the pixel
+        # instead of also its neighbors
         laplace[idx, :] = 0  # Clear the row
         laplace[idx, idx] = 1  # Set diagonal to 1
 
@@ -122,10 +126,6 @@ if __name__ == "__main__":
     cv2.imshow("Vector field", vector_field_imgs)
 
     np.set_printoptions(precision=4, suppress=True)
-    # print("Annotations")
-    # print(annotations)
-    # print("Vector field")
-    # print(vector_field)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()

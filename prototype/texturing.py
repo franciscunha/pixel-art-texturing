@@ -55,11 +55,12 @@ def texture(
     else:
         colors = None
 
-    #! Positions 
+    #! Positions
 
     pattern_shape = patterns.shape[2:4]
     positions = pattern_positions(
-        mask, pattern_shape, placement_mode, allow_partly_in_mask, pattern_padding, num_patterns)
+        mask, pattern_shape, placement_mode,
+        allow_partly_in_mask, pattern_padding, num_patterns)
 
     #! Placement
 

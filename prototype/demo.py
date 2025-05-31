@@ -61,8 +61,9 @@ if source is None or pattern_sheet is None or boundary is None:
 #! Call the algorithm
 
 result, mask, colors, annotations, vector_field, positions =\
-    texture(source, pattern_sheet, boundary, num_patterns, placement_mode, allow_partly_in_mask, boundary_mask_padding,
-            pattern_padding, scale, excluded_colors, color_mode, hsv_shift, result_only=False)
+    texture(source, pattern_sheet, boundary, num_patterns, placement_mode,
+            allow_partly_in_mask, boundary_mask_padding, pattern_padding, scale,
+            excluded_colors, color_mode, hsv_shift, result_only=False)
 
 
 #! Showing results

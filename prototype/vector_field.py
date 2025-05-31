@@ -4,10 +4,15 @@ from vector_helpers import average_vector
 
 
 def divergence(vector_field: np.ndarray):
-    return np.ufunc.reduce(np.add, [np.gradient(vector_field[:, :, i], axis=i) for i in range(2)])
+    return np.ufunc.reduce(
+        np.add, [np.gradient(vector_field[:, :, i], axis=i) for i in range(2)]
+    )
 
 
-def compress_vector_field(vector_field: np.ndarray, window_size: tuple[int, int]) -> np.ndarray:
+def compress_vector_field(
+    vector_field: np.ndarray,
+    window_size: tuple[int, int]
+) -> np.ndarray:
     """
     Compress a vector field by averaging vectors within non-overlapping windows.
 
@@ -58,7 +63,10 @@ def compress_vector_field(vector_field: np.ndarray, window_size: tuple[int, int]
     return compressed
 
 
-def area_vector(vector_field: np.ndarray, region: tuple[int, int, int, int]) -> np.ndarray:
+def area_vector(
+    vector_field: np.ndarray,
+    region: tuple[int, int, int, int]
+) -> np.ndarray:
     """
     Extract and average vectors from a rectangular region in a vector field.
 

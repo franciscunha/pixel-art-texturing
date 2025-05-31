@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from visualizations import show_scaled, visualize_mask
+from visualizations import show_scaled
 
 
 def mask_from_boundary(boundary: np.ndarray):

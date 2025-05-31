@@ -83,8 +83,8 @@ def pattern_positions(
         availability_mask[padded_y0:padded_y1, padded_x0:padded_x1] = False
 
         # Update valid positions list to remove positions that are no longer valid
-        valid_positions = [(x, y)
-                           for x, y in valid_positions if availability_mask[y, x]]
+        valid_positions = [(x, y) for x, y in valid_positions
+                           if availability_mask[y, x]]
 
         # Compute the next positions to try
         if type == "sampling":
@@ -116,11 +116,16 @@ def pattern_positions(
             raise ValueError("Type must be 'sampling' or 'packed'")
 
     print(
-        f"Placed {patterns_placed} patterns out of {num_patterns} requested (in {attempts} attempts, remaining valid positions: {bool(valid_positions)})")
+        f"Placed {patterns_placed} patterns out of {num_patterns} requested" +
+        f"(in {attempts} attempts, remaining valid positions: {bool(valid_positions)})")
     return placements
 
 
-def find_pattern(vector_field: np.ndarray, point: tuple[int, int], patterns: np.ndarray):
+def find_pattern(
+    vector_field: np.ndarray,
+    point: tuple[int, int],
+    patterns: np.ndarray
+):
     x, y = point
     rows, cols, h, w, _ = patterns.shape
 
@@ -151,11 +156,11 @@ def split_oriented_spritesheet(img: cv2.Mat):
         [2,0]: bottom-left  [2,1]: bottom    [2,2]: bottom-right
 
     Args:
-        img: OpenCV image (H,W,C) format where H = sprite_height*3 and W = sprite_width*3
+        img: OpenCV image (H,W,C) format where H = sprite_h*3 and W = sprite_w*3
 
     Returns:
-        sprites: Numpy array of shape (3,3,sprite_height,sprite_width,4) containing all sprites
-                 indexed as sprites[row, col]
+        sprites: Numpy array of shape (3,3,sprite_h,sprite_w,4) 
+                 containing all sprites indexed as sprites[row, col]
     """
     # Get total image dimensions
     img_height, img_width, _ = img.shape
@@ -170,9 +175,9 @@ def split_oriented_spritesheet(img: cv2.Mat):
     # Iterate through the 3x3 grid
     for row_idx in range(3):
         for col_idx in range(3):
-            # This section has an apparent x, y swap. This is because we need to access the image
-            # with OpenCV's [y, x] indexing, but the sprites themselves are laid out in the more
-            # intuitive [x, y] indexing.
+            # This section has an apparent x, y swap. This is because we need to
+            # access the image with OpenCV's [y, x] indexing, but the sprites
+            # themselves are laid out in the more intuitive [x, y] indexing.
 
             # Calculate starting pixel coordinates in the original image
             # Convert grid position to pixel position

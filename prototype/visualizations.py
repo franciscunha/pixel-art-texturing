@@ -9,7 +9,12 @@ def show_scaled(title: str, img: cv2.Mat, factor: int):
     cv2.imshow(title, scaled)
 
 
-def highlight_pixels(image: cv2.Mat, scale_factor: int, pixel_coords: list[tuple[int, int]], border_thickness=1, border_color=(0, 0, 255)):
+def highlight_pixels(
+    image: cv2.Mat,
+    scale_factor: int,
+    pixel_coords: list[tuple[int, int]],
+    border_thickness=1, border_color=(0, 0, 255)
+):
     """
     Scale an image and place borders around specified pixels.
     """
@@ -60,7 +65,14 @@ def highlight_pixels(image: cv2.Mat, scale_factor: int, pixel_coords: list[tuple
     return result_image
 
 
-def draw_grid(cell_size, grid_height, grid_width, background_color=(255, 255, 255), line_color=(0, 0, 0), line_thickness=1):
+def draw_grid(
+    cell_size,
+    grid_height,
+    grid_width,
+    background_color=(255, 255, 255),
+    line_color=(0, 0, 0),
+    line_thickness=1
+):
     # Written by Claude
 
     # Calculate the pixel dimensions
@@ -86,7 +98,12 @@ def draw_grid(cell_size, grid_height, grid_width, background_color=(255, 255, 25
     return grid_image
 
 
-def visualize_vector_field(vec_field: np.array, input_vector_coords: list[tuple[int, int]] = [], scalar_field: np.array = None, cell_size: int = 24):
+def visualize_vector_field(
+    vec_field: np.array,
+    input_vector_coords: list[tuple[int, int]] = [],
+    scalar_field: np.array = None,
+    cell_size: int = 24
+):
     """
     Visualize a vector field. The input array should have shape (h, w, 2),
     where vec_field[y, x] contains the (dx, dy) vector at position (x, y).
@@ -128,14 +145,23 @@ def visualize_vector_field(vec_field: np.array, input_vector_coords: list[tuple[
 
             if scalar_field is not None:
                 start_point = (
-                    int(start[0]) - int(center_offset/2), int(start[1]) - int(center_offset/2))
+                    int(start[0]) - int(center_offset/2),
+                    int(start[1]) - int(center_offset/2)
+                )
                 cv2.putText(
-                    img, f"{scalar_field[y, x]:.2f}", start_point, 1, 1, (0, 0, 255))
+                    img, f"{scalar_field[y, x]:.2f}",
+                    start_point, 1, 1, (0, 0, 255))
 
     return img
 
 
-def draw_arrow(img: cv2.Mat, start: np.array, end: np.array, color: np.array, size=5):
+def draw_arrow(
+    img: cv2.Mat,
+    start: np.array,
+    end: np.array,
+    color: np.array,
+    size=5
+):
     """
     Draw an arrow from start to end on the image.
     start and end should be in (x,y) format for OpenCV compatibility.

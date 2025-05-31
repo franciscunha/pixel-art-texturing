@@ -109,7 +109,8 @@ def parse_curves(curves: list[np.array], img_h: int, img_w: int):
 
 
 def get_annotation_coords(annotations):
-    return [(y, x) for y, x in np.ndindex(annotations.shape[:2]) if np.any(annotations[y, x] != 0)]
+    return [(y, x) for y, x in np.ndindex(annotations.shape[:2])
+            if np.any(annotations[y, x] != 0)]
 
 
 def main():
