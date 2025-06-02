@@ -4,9 +4,16 @@ import numpy as np
 from annotations import get_annotation_coords
 from texturing import texture
 from vector_field import compress_vector_field
-from visualizations import show_scaled, visualize_vector_field
+from visualizations import save_scaled, show_scaled, visualize_vector_field
 
 #! Params
+
+source_file = "data/bases/trunk_unpatternerd.png"
+pattern_sheet_file = "data/pattern_sheet/bark_scale.png"
+boundary_file = "data/boundaries/trunk_partial.png"
+
+save_output = True
+output_name = "trunk"
 
 # Vector field
 show_annotations = False
@@ -28,6 +35,7 @@ pattern_padding = -1
 num_patterns = 200
 
 # Coloring
+# show_color_map = True
 show_color_map = False
 
 # Uncomment appropriate parameters for color mode
@@ -41,10 +49,6 @@ excluded_colors = np.array([[0, 0, 0, 255]])
 scale = 6
 
 #! Loading images
-
-source_file = "data/bases/fish.png"
-pattern_sheet_file = "data/pattern_sheet/fish_scale.png"
-boundary_file = "data/boundaries/fish_body.png"
 
 source = cv2.imread(source_file, cv2.IMREAD_UNCHANGED)
 pattern_sheet = cv2.imread(pattern_sheet_file, cv2.IMREAD_UNCHANGED)
@@ -66,7 +70,7 @@ result, mask, colors, annotations, vector_field, positions =\
             excluded_colors, color_mode, hsv_shift, result_only=False)
 
 
-#! Showing results
+#! Showing and saving results
 
 if show_vector_field:
     annotations_compressed = compress_vector_field(annotations, grid_scale)
@@ -79,19 +83,26 @@ if show_vector_field:
     )
 
     cv2.imshow("Vector field", vector_field_img)
+    if save_output:
+        cv2.imwrite(f"out/{output_name}.vector_field.png", vector_field_img)
 
 if show_annotations:
     annotations_img = visualize_vector_field(
         compress_vector_field(annotations, grid_scale),
         cell_size=grid_cell_size)
     cv2.imshow("Annotations", annotations_img)
-
+    if save_output:
+        cv2.imwrite(f"out/{output_name}.annotations.png", annotations_img)
 
 if show_color_map:
     show_scaled("Color map", colors, scale)
-
+    if save_output:
+        save_scaled(f"out/{output_name}.color_map.png", colors, scale)
 
 show_scaled("Output", result, scale)
+if save_output:
+    save_scaled(f"out/{output_name}.result.png", result, scale)
+
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
