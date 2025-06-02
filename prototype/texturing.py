@@ -25,6 +25,8 @@ def texture(
     hsv_shift: tuple[int, int, int] | None = None,
     result_only: bool = True,
 ):
+    # TODO change structure and terminology to reflect paper
+
     if boundary.shape != source.shape:
         raise ValueError("Boundary has to be the same size as source")
 
@@ -49,12 +51,11 @@ def texture(
 
     #! Coloring
 
-    # TODO adapt HSV shift to also create a color mask
-    # if hsv_shift is None:
-    colors = color_map(
-        source, mask, exclude=excluded_colors, type=color_map_mode)
-    # else:
-    #     colors = None
+    if color_map_mode == "hsv" and hsv_shift is None:
+        raise ValueError("Specify an HSV shift value for HSV color map mode")
+
+    colors = color_map(source, mask, exclude=excluded_colors,
+                       type=color_map_mode, hsv_shift=hsv_shift)
 
     #! Positions
 

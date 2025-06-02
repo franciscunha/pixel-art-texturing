@@ -4,7 +4,7 @@ import numpy as np
 
 from vector_field import area_vector
 from vector_helpers import quantize_direction
-from coloring import get_shifted_color, mode_color, monochromize_image
+from coloring import mode_color
 
 
 def pattern_positions(

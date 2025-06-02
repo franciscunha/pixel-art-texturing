@@ -8,12 +8,12 @@ from visualizations import save_scaled, show_scaled, visualize_vector_field
 
 #! Params
 
-source_file = "data/bases/trunk_unpatterned.png"
-pattern_sheet_file = "data/pattern_sheet/bark_scale_large.png"
-boundary_file = "data/boundaries/trunk_partial.png"
+source_file = "data/bases/fish.png"
+pattern_sheet_file = "data/pattern_sheet/fish_scale.png"
+boundary_file = "data/boundaries/fish_body.png"
 
-save_output = False
-output_name = "trunk"
+save_output = True
+output_name = "fish_flat"
 
 # Vector field
 show_annotations = False
@@ -25,24 +25,24 @@ grid_cell_size = 16
 boundary_mask_padding = 0
 
 # Placement
-# placement_mode = "packed"
-placement_mode = "sampling"
+placement_mode = "packed"
+# placement_mode = "sampling"
 allow_partly_in_mask = True
 # allow_partly_in_mask = False
 
 # Density
-pattern_padding = (-1, -2)
+pattern_padding = (-1, -1)
 num_patterns = 200
 
 # Coloring
-show_color_map = True
-# show_color_map = False
+# show_color_map = True
+show_color_map = False
 
 # Uncomment appropriate parameters for color mode
-# hsv_shift = (0, 0, -20)
-hsv_shift = None
+hsv_shift = (0, -100, -100)
+color_map_mode = "hsv"
 # color_map_mode = "similarity"
-color_map_mode = "border"
+# color_map_mode = "border"
 element_color_mode = "region"
 # element_color_mode = "per-pixel"
 excluded_colors = np.array([[0, 0, 0, 255]])

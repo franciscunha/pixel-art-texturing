@@ -48,35 +48,16 @@ def area_mode_color(base: cv2.Mat, rect: tuple[int, int, int, int]):
     return mode_color(roi)
 
 
-def area_mean_color(base: cv2.Mat, rect: tuple[int, int, int, int]):
-    y, x, h, w = rect
-    # Get the region of interest and its average color
-    roi_per_channel = [base[y: y + h, x: x + w, i] for i in range(4)]
-    return [int(np.round(np.mean(roi_per_channel[i]))) for i in range(4)]
-
-
 def get_shifted_color(
-        base: cv2.Mat,
-        rect: tuple[int, int, int, int],
+        bgr: tuple[int, int, int],
         hsv_shift: tuple[int, int, int]
 ):
-    """
-    Gets the average color of a region of an image, then shifts it.
-
-    Args:
-        base: Image to extract color from
-        rect: Boundaries of image region, layout is x y w h
-        hsv_shift: How much to shift the color by, in HSV color space
-
-    Returns: The average color, shifted, in BGR color space
-    """
-    mean_color_bgr = area_mean_color(base, rect)
-    mean_color_hsv = change_color_space(mean_color_bgr, cv2.COLOR_BGR2HSV)
+    hsv = change_color_space(bgr, cv2.COLOR_BGR2HSV)
 
     # Apply the shift converting to int32 to allow
     # for negative values in parameter
     shifted_hsv = \
-        mean_color_hsv.astype(np.int32) + np.array(hsv_shift, dtype=np.int32)
+        hsv.astype(np.int32) + np.array(hsv_shift, dtype=np.int32)
 
     # Wrap around H channel
     shifted_hsv[0] = shifted_hsv[0] % 180
@@ -85,19 +66,11 @@ def get_shifted_color(
     shifted_hsv[1] = np.clip(shifted_hsv[1], 0, 255)
     shifted_hsv[2] = np.clip(shifted_hsv[2], 0, 255)
 
-    # Convert back to uint8 for OpenCV
-    shifted_hsv_uint8 = shifted_hsv.astype(np.uint8)
-
+    # Convert back to uint8 for OpenCV, then into BGR
     shifted_color_bgr = change_color_space(
-        shifted_hsv_uint8, cv2.COLOR_HSV2RGB)
+        shifted_hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
 
     return shifted_color_bgr
-
-
-def monochromize_image(img: cv2.Mat, color: np.ndarray):
-    if len(color) != 3 and len(color) != 4:
-        raise ValueError(f"{color} is not a color")
-    img[:, :, :3] = color[:3]
 
 
 def extract_palette(img: cv2.Mat):
@@ -216,19 +189,37 @@ def color_map_by_shared_border(
     return colors
 
 
+def color_map_by_hsv_shift(
+        image: cv2.Mat,
+        mask: np.ndarray,
+        hsv_shift: tuple[int, int, int]
+):
+    colors = np.copy(image)
+    ys, xs = np.where(mask)
+
+    for i in range(len(ys)):
+        y, x = ys[i], xs[i]
+
+        colors[y, x, :3] = get_shifted_color(colors[y, x, :3], hsv_shift)
+
+    return colors
+
+
 def color_map(
     image: cv2.Mat,
     mask: np.ndarray,
     exclude: np.ndarray = [],
-    type: str = "border"
+    type: str = "border",
+    hsv_shift: tuple[int, int, int] | None = None
 ):
-    # TODO hsv shift color map
     if type == "similarity":
         map = color_map_by_similarity(image, mask, exclude)
     elif type == "border":
         map = color_map_by_shared_border(image, mask, exclude)
+    elif type == "hsv":
+        map = color_map_by_hsv_shift(image, mask, hsv_shift)
     else:
-        raise ValueError("Type must be 'similarity' or 'border'")
+        raise ValueError("Type must be 'similarity', 'border' or 'hsv'")
     return cv2.bitwise_and(map, map, mask=mask.astype(np.uint8))
 
 
