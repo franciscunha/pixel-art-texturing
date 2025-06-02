@@ -4,7 +4,7 @@ import numpy as np
 
 from vector_field import area_vector
 from vector_helpers import quantize_direction
-from coloring import get_shifted_color, monochromize_image
+from coloring import get_shifted_color, mode_color, monochromize_image
 
 
 def pattern_positions(
@@ -196,8 +196,9 @@ def place_pattern(
         pattern: cv2.Mat,
         point: tuple[int, int],
         mask: np.ndarray,
-        hsv_shift: tuple[int, int, int] | None = None,
-        color_map: cv2.Mat | None = None):
+        color_map: cv2.Mat | None = None,
+        type: str = "region"
+):
 
     x0, y0 = point
 
@@ -207,18 +208,12 @@ def place_pattern(
         return False
 
     # Find pattern color
-    if hsv_shift is None and color_map is None:
-        raise ValueError("One of hsv_shift or color_map needs to be set")
 
-    if hsv_shift is not None:
-        color = get_shifted_color(destination, (y0, x0, h, w), hsv_shift)
-    if color_map is not None:
-        color = color_map[y0, x0]
-    # monochromize_image(pattern, color)
+    if type == "region":
+        region_of_interest = color_map[y0: y0 + h, x0: x0 + w, :]
+        region_color = mode_color(region_of_interest)
 
     # Placing
-    # pattern_alpha = pattern[:, :, 3] / 255.0
-    # region_of_interest = destination[y0: y0 + h, x0: x0 + w, :]
 
     for x in range(x0, x0 + w):
         for y in range(y0, y0 + h):
@@ -231,10 +226,11 @@ def place_pattern(
             if alpha <= 10:
                 continue
 
-            # TODO different coloring modes: per pixel or region (mode)
-
-            # pixel = (1 - alpha) * destination[y, x, :] \
-            #     + alpha * color_map[y, x, :]
-            destination[y, x, :] = color_map[y, x, :]
+            if type == "region":
+                destination[y, x, :] = region_color
+            elif type == "per-pixel":
+                destination[y, x, :] = color_map[y, x, :]
+            else:
+                raise ValueError("Type must be 'per-pixel' or 'region'")
 
     return True

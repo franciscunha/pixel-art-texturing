@@ -30,9 +30,13 @@ def mode_color(image: cv2.Mat, exclude: np.ndarray = []):
 
     # Iterate through indices so we can skip transparent colors
     for i in sorted_indices:
-        # if not transparent and not in exclude list
-        if colors[i][3] > 0 and not np.any(np.all(colors[i] == exclude, axis=1)):
-            return colors[i]
+        if colors[i][3] == 0:
+            # is transparent
+            continue
+        if len(exclude) > 0 and np.any(np.all(colors[i] == exclude, axis=1)):
+            # is in exclude list
+            continue
+        return colors[i]
 
     # If all colors are transparent, return the most frequent anyway
     return colors[sorted_indices[0]]
@@ -218,12 +222,14 @@ def color_map(
     exclude: np.ndarray = [],
     type: str = "border"
 ):
+    # TODO hsv shift color map
     if type == "similarity":
-        return color_map_by_similarity(image, mask, exclude)
+        map = color_map_by_similarity(image, mask, exclude)
     elif type == "border":
-        return color_map_by_shared_border(image, mask, exclude)
+        map = color_map_by_shared_border(image, mask, exclude)
     else:
         raise ValueError("Type must be 'similarity' or 'border'")
+    return cv2.bitwise_and(map, map, mask=mask.astype(np.uint8))
 
 
 if __name__ == "__main__":

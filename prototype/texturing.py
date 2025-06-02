@@ -20,7 +20,8 @@ def texture(
     pattern_padding: int = 1,
     annotation_img_scale: int = 1,
     excluded_colors: np.ndarray = [],
-    color_mode: str = "border",
+    color_map_mode: str = "border",
+    element_color_mode: str = "region",
     hsv_shift: tuple[int, int, int] | None = None,
     result_only: bool = True,
 ):
@@ -49,11 +50,11 @@ def texture(
     #! Coloring
 
     # TODO adapt HSV shift to also create a color mask
-    if hsv_shift is None:
-        colors = color_map(
-            source, mask, exclude=excluded_colors, type=color_mode)
-    else:
-        colors = None
+    # if hsv_shift is None:
+    colors = color_map(
+        source, mask, exclude=excluded_colors, type=color_map_mode)
+    # else:
+    #     colors = None
 
     #! Positions
 
@@ -67,7 +68,8 @@ def texture(
     result = source.copy()
     for position in positions:
         pattern = find_pattern(vector_field, position, patterns)
-        place_pattern(result, pattern, position, mask, hsv_shift, colors)
+        place_pattern(result, pattern, position, mask,
+                      colors, element_color_mode)
 
     #! Return
 

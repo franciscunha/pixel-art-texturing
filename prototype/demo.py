@@ -8,11 +8,11 @@ from visualizations import save_scaled, show_scaled, visualize_vector_field
 
 #! Params
 
-source_file = "data/bases/trunk_unpatternerd.png"
-pattern_sheet_file = "data/pattern_sheet/bark_scale.png"
+source_file = "data/bases/trunk_unpatterned.png"
+pattern_sheet_file = "data/pattern_sheet/bark_scale_large.png"
 boundary_file = "data/boundaries/trunk_partial.png"
 
-save_output = True
+save_output = False
 output_name = "trunk"
 
 # Vector field
@@ -25,24 +25,26 @@ grid_cell_size = 16
 boundary_mask_padding = 0
 
 # Placement
-placement_mode = "packed"
-# placement_mode = "sampling"
-allow_partly_in_mask = True
-# allow_partly_in_mask = False
+# placement_mode = "packed"
+placement_mode = "sampling"
+# allow_partly_in_mask = True
+allow_partly_in_mask = False
 
 # Density
 pattern_padding = -1
 num_patterns = 200
 
 # Coloring
-# show_color_map = True
-show_color_map = False
+show_color_map = True
+# show_color_map = False
 
 # Uncomment appropriate parameters for color mode
 # hsv_shift = (0, 0, -20)
 hsv_shift = None
-# color_mode = "similarity"
-color_mode = "border"
+# color_map_mode = "similarity"
+color_map_mode = "border"
+element_color_mode = "region"
+# element_color_mode = "per-pixel"
 excluded_colors = np.array([[0, 0, 0, 255]])
 
 # Visualization
@@ -67,7 +69,7 @@ if source is None or pattern_sheet is None or boundary is None:
 result, mask, colors, annotations, vector_field, positions =\
     texture(source, pattern_sheet, boundary, num_patterns, placement_mode,
             allow_partly_in_mask, boundary_mask_padding, pattern_padding, scale,
-            excluded_colors, color_mode, hsv_shift, result_only=False)
+            excluded_colors, color_map_mode, element_color_mode, hsv_shift, result_only=False)
 
 
 #! Showing and saving results
