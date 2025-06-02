@@ -12,7 +12,7 @@ def pattern_positions(
         pattern_shape: tuple[int, int],
         type: str = "sampling",
         allow_partly_in_mask: bool = False,
-        pattern_padding: int = 0,
+        pattern_padding: tuple[int, int] = (0, 0),  # x,y
         num_patterns: int = 20,
         max_attempts: int = 1000):
 
@@ -78,8 +78,8 @@ def pattern_positions(
         patterns_placed += 1
 
         # Update the mask to mark this area as used
-        padded_y0, padded_y1 = y0 - pattern_padding, y1 + pattern_padding
-        padded_x0, padded_x1 = x0 - pattern_padding, x1 + pattern_padding
+        padded_y0, padded_y1 = y0 - pattern_padding[1], y1 + pattern_padding[1]
+        padded_x0, padded_x1 = x0 - pattern_padding[0], x1 + pattern_padding[0]
         availability_mask[padded_y0:padded_y1, padded_x0:padded_x1] = False
 
         # Update valid positions list to remove positions that are no longer valid

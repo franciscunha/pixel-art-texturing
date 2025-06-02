@@ -17,7 +17,7 @@ def texture(
     placement_mode: str = "sampling",
     allow_partly_in_mask: bool = False,
     boundary_mask_padding: int = 0,
-    pattern_padding: int = 1,
+    pattern_padding: tuple[int, int] = (0, 0),  # x, y
     annotation_img_scale: int = 1,
     excluded_colors: np.ndarray = [],
     color_map_mode: str = "border",

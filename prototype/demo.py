@@ -27,11 +27,11 @@ boundary_mask_padding = 0
 # Placement
 # placement_mode = "packed"
 placement_mode = "sampling"
-# allow_partly_in_mask = True
-allow_partly_in_mask = False
+allow_partly_in_mask = True
+# allow_partly_in_mask = False
 
 # Density
-pattern_padding = -1
+pattern_padding = (-1, -2)
 num_patterns = 200
 
 # Coloring
