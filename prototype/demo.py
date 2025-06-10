@@ -6,23 +6,33 @@ from texturing import texture
 from vector_field import compress_vector_field
 from visualizations import save_scaled, show_scaled, visualize_vector_field
 
+# Params for animal:
+# boundary_mask_padding = 2
+# pattern_padding = (-3, -3)
+# allow_partly_in_mask = False
+# placement_mode = "sampling"
+# color_map_mode = "border"
+# element_color_mode = "per-pixel"
+
+
 #! Params
 
-source_file = "data/bases/fish.png"
+source_file = "data/bases/fish/mini_fish.png"
 pattern_sheet_file = "data/pattern_sheet/fish_scale.png"
-boundary_file = "data/boundaries/fish_body.png"
+boundary_file = "data/bases/fish/mini_fish.png"
 
 save_output = True
-output_name = "fish_flat"
+output_name = "mini_fish"
 
 # Vector field
-show_annotations = False
-show_vector_field = False
-grid_scale = (4, 4)
-grid_cell_size = 16
+show_annotations = True
+show_vector_field = True
+grid_scale = (1, 1)
+grid_cell_size = 20
 
 # Mask
 boundary_mask_padding = 0
+show_mask = False
 
 # Placement
 placement_mode = "packed"
@@ -31,24 +41,24 @@ allow_partly_in_mask = True
 # allow_partly_in_mask = False
 
 # Density
-pattern_padding = (-1, -1)
-num_patterns = 200
+pattern_padding = (-1, -2)
+num_patterns = 0
 
 # Coloring
 # show_color_map = True
 show_color_map = False
 
 # Uncomment appropriate parameters for color mode
-hsv_shift = (0, -100, -100)
-color_map_mode = "hsv"
+hsv_shift = (0, 0, -int(0.3*255))
+# color_map_mode = "hsv"
 # color_map_mode = "similarity"
-# color_map_mode = "border"
+color_map_mode = "border"
 element_color_mode = "region"
 # element_color_mode = "per-pixel"
-excluded_colors = np.array([[0, 0, 0, 255]])
+excluded_colors = np.array([[0, 0, 0, 255], [255, 255, 255, 255]])
 
 # Visualization
-scale = 6
+scale = 8
 
 #! Loading images
 
@@ -86,7 +96,9 @@ if show_vector_field:
 
     cv2.imshow("Vector field", vector_field_img)
     if save_output:
-        cv2.imwrite(f"out/{output_name}.vector_field.png", vector_field_img)
+        cv2.imwrite(
+            f"out/{output_name}.vector_field.png", vector_field_img[:, :, :3])
+        np.save(f"out/{output_name}.vector_field.npy", vector_field)
 
 if show_annotations:
     annotations_img = visualize_vector_field(
@@ -94,12 +106,20 @@ if show_annotations:
         cell_size=grid_cell_size)
     cv2.imshow("Annotations", annotations_img)
     if save_output:
-        cv2.imwrite(f"out/{output_name}.annotations.png", annotations_img)
+        cv2.imwrite(
+            f"out/{output_name}.annotations.png", annotations_img[:, :, :3])
+        np.save(f"out/{output_name}.annotations.npy", annotations)
 
 if show_color_map:
     show_scaled("Color map", colors, scale)
     if save_output:
         save_scaled(f"out/{output_name}.color_map.png", colors, scale)
+
+if show_mask:
+    mask_img = cv2.bitwise_and(source, source, mask=mask.astype(np.uint8))
+    show_scaled("Mask", mask_img, scale)
+    if save_output:
+        save_scaled(f"out/{output_name}.mask.png", mask_img, scale)
 
 show_scaled("Output", result, scale)
 if save_output:

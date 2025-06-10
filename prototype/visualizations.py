@@ -118,10 +118,10 @@ def visualize_vector_field(
     if vec_shape != 2:
         raise ValueError("Expected shape (h, w, 2)")
 
-    arrow_size = ceil(cell_size / 8)
+    arrow_size = ceil(cell_size / 12)
     center_offset = cell_size / 2
-    # img = np.zeros((h * cell_size, w * cell_size, 4), np.uint8)
-    img = draw_grid(cell_size, h, w)
+    img = np.full((h * cell_size, w * cell_size, 4), 255, np.uint8)
+    # img = draw_grid(cell_size, h, w)
 
     for y in range(h):
         for x in range(w):
@@ -129,6 +129,12 @@ def visualize_vector_field(
 
             if np.all(vec == 0):
                 continue
+
+            # Set vector length to 1.1
+            vec = vec * (1.1 / np.linalg.norm(vec))
+
+            # Draw only some of the arrow tips
+            draw_tip = x % 3 == 0 and y % 3 == 0
 
             # Convert grid position to pixel coordinates (x,y format for OpenCV)
             start = np.array([
@@ -143,11 +149,14 @@ def visualize_vector_field(
                 start[1] + vec[1] * center_offset
             ], dtype=np.float64)
 
+            # Move start to the pixel's corner
+            start += start - end
+
             color = (0, 0, 255) \
                 if (y, x) in input_vector_coords or input_vector_coords == [] \
                 else (255, 0, 0)
 
-            draw_arrow(img, start, end, color, arrow_size)
+            draw_arrow(img, start, end, color, arrow_size, draw_tip, True)
 
             if scalar_field is not None:
                 start_point = (
@@ -166,7 +175,9 @@ def draw_arrow(
     start: np.array,
     end: np.array,
     color: np.array,
-    size=5
+    size=5,
+    draw_tip=True,
+    big_tip=False
 ):
     """
     Draw an arrow from start to end on the image.
@@ -181,11 +192,18 @@ def draw_arrow(
 
     cv2.line(img, start_point, end_point, color, size)
 
+    if not draw_tip:
+        return
+
+    alpha = 5 if big_tip else 3
+    beta = 4 if big_tip else 2
+
     # Get points that form triangle's tip
     front_dir = ((end - start) / np.linalg.norm(end - start))
     side_dir = np.array([front_dir[1], -front_dir[0]])  # 90 deg rot front_dir
-    tip = np.array([[end + (3*size) * front_dir], [end + (2*size) * side_dir],
-                   [end - (2*size) * side_dir]], dtype=np.int32)
+    tip = np.array([[end + (alpha*size) * front_dir],
+                    [end + (beta*size) * side_dir],
+                    [end - (beta*size) * side_dir]], dtype=np.int32)
 
     cv2.fillPoly(img, [tip], color)
 
