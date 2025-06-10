@@ -17,16 +17,16 @@ from visualizations import save_scaled, show_scaled, visualize_vector_field
 
 #! Params
 
-source_file = "data/bases/fish/mini_fish.png"
+source_file = "data/bases/fish/fish_twist.png"
 pattern_sheet_file = "data/pattern_sheet/fish_scale.png"
-boundary_file = "data/bases/fish/mini_fish.png"
+boundary_file = "data/boundaries/fish/fish_twist.png"
 
 save_output = True
-output_name = "mini_fish"
+output_name = "fish"
 
 # Vector field
-show_annotations = True
-show_vector_field = True
+show_annotations = False
+show_vector_field = False
 grid_scale = (1, 1)
 grid_cell_size = 20
 
@@ -42,14 +42,14 @@ allow_partly_in_mask = True
 
 # Density
 pattern_padding = (-1, -2)
-num_patterns = 0
+density = 1.0
 
 # Coloring
 # show_color_map = True
 show_color_map = False
 
 # Uncomment appropriate parameters for color mode
-hsv_shift = (0, 0, -int(0.3*255))
+hsv_shift = (0, int(0.75*255), 0)
 # color_map_mode = "hsv"
 # color_map_mode = "similarity"
 color_map_mode = "border"
@@ -58,7 +58,7 @@ element_color_mode = "region"
 excluded_colors = np.array([[0, 0, 0, 255], [255, 255, 255, 255]])
 
 # Visualization
-scale = 8
+scale = 4
 
 #! Loading images
 
@@ -77,7 +77,7 @@ if source is None or pattern_sheet is None or boundary is None:
 #! Call the algorithm
 
 result, mask, colors, annotations, vector_field, positions =\
-    texture(source, pattern_sheet, boundary, num_patterns, placement_mode,
+    texture(source, pattern_sheet, boundary, density, placement_mode,
             allow_partly_in_mask, boundary_mask_padding, pattern_padding, scale,
             excluded_colors, color_map_mode, element_color_mode, hsv_shift, result_only=False)
 

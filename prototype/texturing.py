@@ -13,7 +13,7 @@ def texture(
     source: cv2.Mat,
     pattern_sheet: np.ndarray,
     boundary: cv2.Mat,
-    num_patterns: int,
+    density: float = 1.0,
     placement_mode: str = "sampling",
     allow_partly_in_mask: bool = False,
     boundary_mask_padding: int = 0,
@@ -62,7 +62,7 @@ def texture(
     pattern_shape = patterns.shape[2:4]
     positions = pattern_positions(
         mask, pattern_shape, placement_mode,
-        allow_partly_in_mask, pattern_padding, num_patterns)
+        allow_partly_in_mask, pattern_padding, density)
 
     #! Placement
 

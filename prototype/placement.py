@@ -13,12 +13,8 @@ def pattern_positions(
         type: str = "sampling",
         allow_partly_in_mask: bool = False,
         pattern_padding: tuple[int, int] = (0, 0),  # x,y
-        num_patterns: int = 20,
+        density: float = 1,
         max_attempts: int = 1000):
-
-    # TODO change num_patterns to density, which works like:
-    # TODO each time a pattern would be placed, it is only placed with possibilty = density
-    # TODO but even if it is not placed due to density, it's placement is considered occupied
 
     placements = []
     availability_mask = np.full_like(mask, True, dtype=bool)
@@ -41,7 +37,7 @@ def pattern_positions(
 
     positions_to_try = [valid_positions[start_idx]]
 
-    while patterns_placed < num_patterns and attempts < max_attempts and valid_positions:
+    while attempts < max_attempts and valid_positions:
         attempts += 1
 
         if not positions_to_try:
@@ -74,8 +70,9 @@ def pattern_positions(
             continue
 
         # Add to list of positions
-        placements.append((x0, y0))
-        patterns_placed += 1
+        if random.random() <= density:
+            placements.append((x0, y0))
+            patterns_placed += 1
 
         # Update the mask to mark this area as used
         padded_y0, padded_y1 = y0 - pattern_padding[1], y1 + pattern_padding[1]
@@ -116,8 +113,8 @@ def pattern_positions(
             raise ValueError("Type must be 'sampling' or 'packed'")
 
     print(
-        f"Placed {patterns_placed} patterns out of {num_patterns} requested" +
-        f"(in {attempts} attempts, remaining valid positions: {bool(valid_positions)})")
+        f"Placed {patterns_placed} patterns" + f"in {attempts} attempts, " +
+        f"remaining valid positions: {bool(valid_positions)}")
     return placements
 
 
