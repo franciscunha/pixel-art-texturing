@@ -15,6 +15,25 @@ def change_color_space(color, cv2_conversion_code):
     return cv2.cvtColor(np.uint8([[color]]), cv2_conversion_code)[0][0]
 
 
+def bgr_to_lab(color):
+    if len(color) != 3 and len(color) != 4:
+        raise ValueError("Color should be an array-like with 3 or 4 elements")
+
+    # Make input be a float32 pixel, otherwise we lose precision
+    # on lab and need to convert it later
+    # 8-bit images: L←L∗255/100,a←a+128,b←b+128
+    # 32-bit images: L, a, and b are left as is
+    # see https://docs.opencv.org/3.4/de/d25/imgproc_color_conversions.html
+    bgr_pixel = np.array(
+        [[[color[0]/255.0, color[1]/255.0, color[2]/255.0]]], dtype=np.float32)
+
+    lab_pixel = cv2.cvtColor(bgr_pixel, cv2.COLOR_BGR2LAB)
+
+    # Conversions are for images, so we use single pixel images for the
+    # conversions. Extract that pixel's color to return.
+    return lab_pixel[0][0]
+
+
 def color_frequency(image: cv2.Mat):
     return np.unique(
         image.reshape(-1, image.shape[-1]),
@@ -92,11 +111,10 @@ def find_closest_color(
     # https://en.wikipedia.org/wiki/Color_difference#Uniform_color_spaces
 
     best_distance = np.inf
-    closest_color = None
+    closest_color_index = -1
 
-    target_uniform = change_color_space(target, cv2.COLOR_BGR2LAB)
-    palette_uniform = [change_color_space(color, cv2.COLOR_BGR2LAB)
-                       for color in palette]
+    target_uniform = bgr_to_lab(target[:3])
+    palette_uniform = [bgr_to_lab(color[:3]) for color in palette]
 
     for i in range(len(palette_uniform)):
         if np.any(np.all(palette[i] == exclude, axis=1)):
@@ -107,12 +125,9 @@ def find_closest_color(
         if distance >= best_distance:
             continue
         best_distance = distance
-        closest_color = palette_uniform[i]
+        closest_color_index = i
 
-    color_with_alpha = np.zeros((4), dtype=np.uint8)
-    color_with_alpha[:3] = change_color_space(closest_color, cv2.COLOR_LAB2BGR)
-    color_with_alpha[3] = 255
-    return color_with_alpha
+    return palette[closest_color_index]
 
 
 def dominant_border_color(
