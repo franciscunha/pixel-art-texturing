@@ -17,48 +17,53 @@ from visualizations import save_scaled, show_scaled, visualize_vector_field
 
 #! Params
 
-source_file = "data/bases/fish/fish_twist.png"
-pattern_sheet_file = "data/pattern_sheet/fish_scale.png"
-boundary_file = "data/boundaries/fish/fish_twist.png"
+source_file = "data/bases/foliage/slynrd_tree.png"
+pattern_sheet_file = "data/pattern_sheet/slynrd_leaf.png"
+boundary_file = "data/boundaries/foliage/slynrd_tree.png"
 
+# Output
 save_output = True
-output_name = "fish"
+output_name = "slynrd"
 
 # Vector field
-show_annotations = False
-show_vector_field = False
 grid_scale = (1, 1)
 grid_cell_size = 20
 
 # Mask
 boundary_mask_padding = 0
-show_mask = False
 
 # Placement
-placement_mode = "packed"
-# placement_mode = "sampling"
-allow_partly_in_mask = True
-# allow_partly_in_mask = False
+
+# placement_mode = "packed"
+placement_mode = "sampling"
+
+allow_partly_in_mask = False
 
 # Density
-pattern_padding = (-1, -2)
-density = 1.0
+pattern_padding = (0, 0)
+density = 0.65
 
 # Coloring
-# show_color_map = True
-show_color_map = False
+
+hsv_shift = (0, int(0.75*255), 0)
 
 # Uncomment appropriate parameters for color mode
-hsv_shift = (0, int(0.75*255), 0)
 # color_map_mode = "hsv"
-# color_map_mode = "similarity"
-color_map_mode = "border"
-element_color_mode = "region"
-# element_color_mode = "per-pixel"
+color_map_mode = "similarity"
+# color_map_mode = "border"
+
+# element_color_mode = "region"
+element_color_mode = "per-pixel"
+
 excluded_colors = np.array([[0, 0, 0, 255], [255, 255, 255, 255]])
 
 # Visualization
 scale = 4
+
+show_annotations = False
+show_vector_field = False
+show_mask = False
+show_color_map = False
 
 #! Loading images
 
