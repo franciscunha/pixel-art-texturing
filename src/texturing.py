@@ -1,12 +1,11 @@
-
 import cv2
 import numpy as np
-from placement import find_pattern, place_pattern, pattern_positions, split_oriented_spritesheet
-from annotations import draw_on_image, parse_curves
-from boundaries import mask_bb, mask_from_boundary, pad_mask
-from coloring import color_map
-from diffusion import diffuse_vector_field
-from vector_field import compress_vector_field
+
+from orientation import orientations
+from color import color_map
+from placement import place_elements
+from position import pattern_positions
+from input_processing import mask_bb, mask_from_boundary, pad_mask, split_oriented_spritesheet
 
 
 def texture(
@@ -26,7 +25,7 @@ def texture(
     max_attempts: int = 1000,
     result_only: bool = True,
 ):
-    # TODO change structure and terminology to reflect paper
+    # TODO change terminology to reflect paper
 
     if boundary.shape != source.shape:
         raise ValueError("Boundary has to be the same size as source")
@@ -41,37 +40,46 @@ def texture(
 
     #! Vector field
 
-    scale = annotation_img_scale
-    curves = draw_on_image(source, scale)
-    annotations = compress_vector_field(
-        parse_curves(curves, source.shape[0]*scale,
-                     source.shape[1]*scale), (scale, scale)
-    )
-
-    vector_field = diffuse_vector_field(annotations)
+    vector_field, annotations = orientations(source, annotation_img_scale)
 
     #! Coloring
 
     if color_map_mode == "hsv" and hsv_shift is None:
         raise ValueError("Specify an HSV shift value for HSV color map mode")
 
-    colors = color_map(source, mask, exclude=excluded_colors,
-                       type=color_map_mode, hsv_shift=hsv_shift)
+    colors = color_map(
+        source,
+        mask,
+        exclude=excluded_colors,
+        type=color_map_mode,
+        hsv_shift=hsv_shift
+    )
 
     #! Positions
 
     pattern_shape = patterns.shape[2:4]
+
     positions = pattern_positions(
-        mask, pattern_shape, placement_mode, allow_partly_in_mask,
-        pattern_padding, density, max_attempts)
+        mask,
+        pattern_shape,
+        placement_mode,
+        allow_partly_in_mask,
+        pattern_padding,
+        density,
+        max_attempts
+    )
 
     #! Placement
 
-    result = source.copy()
-    for position in positions:
-        pattern = find_pattern(vector_field, position, patterns)
-        place_pattern(result, pattern, position, mask,
-                      colors, element_color_mode)
+    result = place_elements(
+        source,
+        patterns,
+        mask,
+        positions,
+        colors,
+        vector_field,
+        element_color_mode
+    )
 
     #! Return
 

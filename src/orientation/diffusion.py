@@ -1,11 +1,5 @@
-import cv2
 import numpy as np
 from scipy import sparse
-
-
-from annotations import draw_on_image, get_annotation_coords, parse_curves
-from vector_field import compress_vector_field
-from visualizations import visualize_vector_field
 
 
 def solve_poisson(
@@ -103,29 +97,3 @@ def diffuse_vector_field(constraints: np.ndarray):
         vector_field[:, :, component] = \
             solve_poisson(component_wise, constrained_indices)
     return vector_field
-
-
-if __name__ == "__main__":
-    shape = (8, 8)
-    scale = 16
-
-    canvas = np.zeros((shape[0], shape[1], 3), np.uint8)
-
-    curves = draw_on_image(canvas, scale)
-    annotations = compress_vector_field(
-        parse_curves(curves, shape[0]*scale, shape[1]*scale), (scale, scale)
-    )
-
-    annotations_img = visualize_vector_field(annotations)
-    cv2.imshow("Influences", annotations_img)
-
-    vector_field = diffuse_vector_field(annotations)
-
-    annotated_coords = get_annotation_coords(annotations)
-    vector_field_imgs = visualize_vector_field(vector_field, annotated_coords)
-    cv2.imshow("Vector field", vector_field_imgs)
-
-    np.set_printoptions(precision=4, suppress=True)
-
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()

@@ -1,10 +1,9 @@
 import cv2
 import numpy as np
 
-from annotations import get_annotation_coords
-from texturing import texture
-from vector_field import compress_vector_field
-from visualizations import save_scaled, show_scaled, visualize_vector_field
+from src.texturing import texture
+from src.visualizations import save_scaled, show_scaled, visualize_annotations, visualize_vector_field
+
 
 # Params for animal:
 # boundary_mask_padding = 2
@@ -82,23 +81,32 @@ if source is None or pattern_sheet is None or boundary is None:
 #! Call the algorithm
 
 result, mask, colors, annotations, vector_field, positions =\
-    texture(source, pattern_sheet, boundary, density, placement_mode,
-            allow_partly_in_mask, boundary_mask_padding, pattern_padding,
-            scale, excluded_colors, color_map_mode, element_color_mode,
-            hsv_shift, max_attempts=1000, result_only=False)
+    texture(
+        # Input
+        source,
+        pattern_sheet,
+        boundary,
+        # Parameters
+        density,
+        placement_mode,
+        allow_partly_in_mask,
+        boundary_mask_padding,
+        pattern_padding,
+        scale,
+        excluded_colors,
+        color_map_mode,
+        element_color_mode,
+        hsv_shift,
+        max_attempts=1000,
+        result_only=False
+    )
 
 
 #! Showing and saving results
 
 if show_vector_field:
-    annotations_compressed = compress_vector_field(annotations, grid_scale)
-    annotated_coords = get_annotation_coords(annotations_compressed)
-
     vector_field_img = visualize_vector_field(
-        compress_vector_field(vector_field, grid_scale),
-        input_vector_coords=annotated_coords,
-        cell_size=grid_cell_size
-    )
+        vector_field, annotations, grid_scale, grid_cell_size)
 
     cv2.imshow("Vector field", vector_field_img)
     if save_output:
@@ -107,9 +115,9 @@ if show_vector_field:
         np.save(f"out/{output_name}.vector_field.npy", vector_field)
 
 if show_annotations:
-    annotations_img = visualize_vector_field(
-        compress_vector_field(annotations, grid_scale),
-        cell_size=grid_cell_size)
+    annotations_img = visualize_annotations(
+        annotations, grid_scale, grid_cell_size)
+
     cv2.imshow("Annotations", annotations_img)
     if save_output:
         cv2.imwrite(

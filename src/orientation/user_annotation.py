@@ -1,10 +1,11 @@
 import cv2
 import numpy as np
 
-from vector_field import compress_vector_field
-from vector_helpers import average_vector
-from visualizations import draw_arrow, visualize_vector_field
+from vectors import average_vector
+from src.orientation.drawing import draw_arrow
 
+
+# Get user input
 
 def draw_on_image(img: cv2.Mat, scale: int):
     # Rescale image
@@ -43,6 +44,8 @@ def draw_on_image(img: cv2.Mat, scale: int):
 
     return curves
 
+
+# Parse user input
 
 def parse_curve(points: np.array):
     """
@@ -106,37 +109,3 @@ def parse_curves(curves: list[np.array], img_h: int, img_w: int):
             vector_field[y, x] = average_vector(vectors)
 
     return vector_field
-
-
-def get_annotation_coords(annotations):
-    return [(y, x) for y, x in np.ndindex(annotations.shape[:2])
-            if np.any(annotations[y, x] != 0)]
-
-
-def main():
-    # shape = cv2.imread("data/shaded_tree.png", cv2.IMREAD_UNCHANGED)
-
-    # if shape is None:
-    #     raise FileNotFoundError()
-
-    shape = (32, 32)
-    scale = 2
-
-    canvas = np.zeros((shape[0], shape[1], 3), np.uint8)
-
-    curves = draw_on_image(canvas, scale)
-    # influences = parseCurves(curves, shape[0]*scale, shape[1]*scale)
-    influences = compress_vector_field(
-        parse_curves(curves, shape[0]*scale, shape[1]*scale), (scale, scale)
-    )
-
-    vector_field_img = visualize_vector_field(influences)
-
-    cv2.imshow("Vector field", vector_field_img)
-
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
-
-if __name__ == "__main__":
-    main()

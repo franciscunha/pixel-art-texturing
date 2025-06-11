@@ -1,19 +1,18 @@
-
 import cv2
 import numpy as np
 
-from boundaries import mask_from_boundary
-from helpers import flood_fill_mask
-from visualizations import show_scaled
+
+# Shared helpers
+
+def flood_fill_mask(image: cv2.Mat, start_point: tuple[int, int]):
+    bgr = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+    _, _, mask_padded, _ = cv2.floodFill(
+        bgr, None, start_point, (255, 255, 255))
+    mask = mask_padded[1:-1, 1:-1]
+    return mask
 
 
-def change_color_space(color, cv2_conversion_code):
-    if len(color) != 3 and len(color) != 4:
-        raise ValueError("Color should be an array-like with 3 or 4 elements")
-    # Conversions are for images, so we use single pixel images for the
-    # conversions. Extract that pixel's color to return.
-    return cv2.cvtColor(np.uint8([[color]]), cv2_conversion_code)[0][0]
-
+# Color difference
 
 def bgr_to_lab(color):
     if len(color) != 3 and len(color) != 4:
@@ -32,70 +31,6 @@ def bgr_to_lab(color):
     # Conversions are for images, so we use single pixel images for the
     # conversions. Extract that pixel's color to return.
     return lab_pixel[0][0]
-
-
-def color_frequency(image: cv2.Mat):
-    return np.unique(
-        image.reshape(-1, image.shape[-1]),
-        axis=0,
-        return_counts=True
-    )
-
-
-def mode_color(image: cv2.Mat, exclude: np.ndarray = []):
-    colors, counts = color_frequency(image)
-    # Color indices sorted by count, decreasing
-    sorted_indices = np.flip(np.argsort(counts))
-
-    # Iterate through indices so we can skip transparent colors
-    for i in sorted_indices:
-        if colors[i][3] == 0:
-            # is transparent
-            continue
-        if len(exclude) > 0 and np.any(np.all(colors[i] == exclude, axis=1)):
-            # is in exclude list
-            continue
-        return colors[i]
-
-    # If all colors are transparent, return the most frequent anyway
-    return colors[sorted_indices[0]]
-
-
-def area_mode_color(base: cv2.Mat, rect: tuple[int, int, int, int]):
-    y, x, h, w = rect
-    roi = base[y: y + h, x: x + w, :]
-    return mode_color(roi)
-
-
-def get_shifted_color(
-        bgr: tuple[int, int, int],
-        hsv_shift: tuple[int, int, int]
-):
-    hsv = change_color_space(bgr, cv2.COLOR_BGR2HSV)
-
-    # Apply the shift converting to int32 to allow
-    # for negative values in parameter
-    shifted_hsv = \
-        hsv.astype(np.int32) + np.array(hsv_shift, dtype=np.int32)
-
-    # Wrap around H channel
-    shifted_hsv[0] = shifted_hsv[0] % 180
-
-    # Clip S and V channels to valid range
-    shifted_hsv[1] = np.clip(shifted_hsv[1], 0, 255)
-    shifted_hsv[2] = np.clip(shifted_hsv[2], 0, 255)
-
-    # Convert back to uint8 for OpenCV, then into BGR
-    shifted_color_bgr = change_color_space(
-        shifted_hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
-
-    return shifted_color_bgr
-
-
-def extract_palette(img: cv2.Mat):
-    palette = np.unique(img.reshape(-1, img.shape[-1]), axis=0)
-    no_transparent = palette[palette[:, 3] > 0]
-    return no_transparent
 
 
 def find_closest_color(
@@ -130,21 +65,10 @@ def find_closest_color(
     return palette[closest_color_index]
 
 
-def dominant_border_color(
-    image: cv2.Mat,
-    start_point: tuple[int, int],
-    exclude: np.ndarray = []
-):
-    mask_flooded_region = flood_fill_mask(image, start_point)
-    mask_flooded_and_borders = cv2.dilate(mask_flooded_region, np.ones((3, 3)))
-    mask_borders_only = cv2.bitwise_xor(
-        mask_flooded_region, mask_flooded_and_borders)
-
-    # Mask out the original image
-    borders = cv2.bitwise_and(image, image, mask=mask_borders_only)
-
-    # Most frequent color in borders, mask for pixels where this applies
-    return mode_color(borders, exclude), mask_flooded_region
+def extract_palette(img: cv2.Mat):
+    palette = np.unique(img.reshape(-1, img.shape[-1]), axis=0)
+    no_transparent = palette[palette[:, 3] > 0]
+    return no_transparent
 
 
 def color_map_by_similarity(
@@ -178,6 +102,52 @@ def color_map_by_similarity(
     return colors
 
 
+# Shared border
+
+def color_frequency(image: cv2.Mat):
+    return np.unique(
+        image.reshape(-1, image.shape[-1]),
+        axis=0,
+        return_counts=True
+    )
+
+
+def mode_color(image: cv2.Mat, exclude: np.ndarray = []):
+    colors, counts = color_frequency(image)
+    # Color indices sorted by count, decreasing
+    sorted_indices = np.flip(np.argsort(counts))
+
+    # Iterate through indices so we can skip transparent colors
+    for i in sorted_indices:
+        if colors[i][3] == 0:
+            # is transparent
+            continue
+        if len(exclude) > 0 and np.any(np.all(colors[i] == exclude, axis=1)):
+            # is in exclude list
+            continue
+        return colors[i]
+
+    # If all colors are transparent, return the most frequent anyway
+    return colors[sorted_indices[0]]
+
+
+def dominant_border_color(
+    image: cv2.Mat,
+    start_point: tuple[int, int],
+    exclude: np.ndarray = []
+):
+    mask_flooded_region = flood_fill_mask(image, start_point)
+    mask_flooded_and_borders = cv2.dilate(mask_flooded_region, np.ones((3, 3)))
+    mask_borders_only = cv2.bitwise_xor(
+        mask_flooded_region, mask_flooded_and_borders)
+
+    # Mask out the original image
+    borders = cv2.bitwise_and(image, image, mask=mask_borders_only)
+
+    # Most frequent color in borders, mask for pixels where this applies
+    return mode_color(borders, exclude), mask_flooded_region
+
+
 def color_map_by_shared_border(
     image: cv2.Mat,
     mask: np.ndarray,
@@ -204,6 +174,41 @@ def color_map_by_shared_border(
     return colors
 
 
+# HSV shift
+
+def change_color_space(color, cv2_conversion_code):
+    if len(color) != 3 and len(color) != 4:
+        raise ValueError("Color should be an array-like with 3 or 4 elements")
+    # Conversions are for images, so we use single pixel images for the
+    # conversions. Extract that pixel's color to return.
+    return cv2.cvtColor(np.uint8([[color]]), cv2_conversion_code)[0][0]
+
+
+def get_shifted_color(
+        bgr: tuple[int, int, int],
+        hsv_shift: tuple[int, int, int]
+):
+    hsv = change_color_space(bgr, cv2.COLOR_BGR2HSV)
+
+    # Apply the shift converting to int32 to allow
+    # for negative values in parameter
+    shifted_hsv = \
+        hsv.astype(np.int32) + np.array(hsv_shift, dtype=np.int32)
+
+    # Wrap around H channel
+    shifted_hsv[0] = shifted_hsv[0] % 180
+
+    # Clip S and V channels to valid range
+    shifted_hsv[1] = np.clip(shifted_hsv[1], 0, 255)
+    shifted_hsv[2] = np.clip(shifted_hsv[2], 0, 255)
+
+    # Convert back to uint8 for OpenCV, then into BGR
+    shifted_color_bgr = change_color_space(
+        shifted_hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+
+    return shifted_color_bgr
+
+
 def color_map_by_hsv_shift(
         image: cv2.Mat,
         mask: np.ndarray,
@@ -219,6 +224,8 @@ def color_map_by_hsv_shift(
 
     return colors
 
+
+# Main export
 
 def color_map(
     image: cv2.Mat,
@@ -236,22 +243,3 @@ def color_map(
     else:
         raise ValueError("Type must be 'similarity', 'border' or 'hsv'")
     return cv2.bitwise_and(map, map, mask=mask.astype(np.uint8))
-
-
-if __name__ == "__main__":
-    base = cv2.imread("data/bases/green_sphere.png", cv2.IMREAD_UNCHANGED)
-    mask = mask_from_boundary(
-        cv2.imread("data/bases/green_sphere.png", cv2.IMREAD_UNCHANGED))
-
-    scale = 12
-
-    show_scaled("Original", base, scale)
-
-    mapped_border = color_map(base, mask, type="border")
-    mapped_similarity = color_map(base, mask, type="similarity")
-
-    show_scaled("Border", mapped_border, scale)
-    show_scaled("Similarity", mapped_similarity, scale)
-
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
