@@ -17,13 +17,13 @@ from visualizations import save_scaled, show_scaled, visualize_vector_field
 
 #! Params
 
-source_file = "data/bases/foliage/slynrd_tree.png"
-pattern_sheet_file = "data/pattern_sheet/slynrd_leaf.png"
-boundary_file = "data/boundaries/foliage/slynrd_tree.png"
+source_file = "data/bases/trunk/trunk_unpatterned.png"
+pattern_sheet_file = "data/pattern_sheet/large_squares.png"
+boundary_file = "data/boundaries/examples/blob.png"
 
 # Output
-save_output = True
-output_name = "slynrd"
+save_output = False
+output_name = "position_sampling"
 
 # Vector field
 grid_scale = (1, 1)
@@ -41,11 +41,11 @@ allow_partly_in_mask = False
 
 # Density
 pattern_padding = (0, 0)
-density = 0.65
+density = 1
 
 # Coloring
 
-hsv_shift = (0, int(0.75*255), 0)
+hsv_shift = (0, 0, -int(0.3*255))
 
 # Uncomment appropriate parameters for color mode
 # color_map_mode = "hsv"
@@ -83,8 +83,9 @@ if source is None or pattern_sheet is None or boundary is None:
 
 result, mask, colors, annotations, vector_field, positions =\
     texture(source, pattern_sheet, boundary, density, placement_mode,
-            allow_partly_in_mask, boundary_mask_padding, pattern_padding, scale,
-            excluded_colors, color_map_mode, element_color_mode, hsv_shift, result_only=False)
+            allow_partly_in_mask, boundary_mask_padding, pattern_padding,
+            scale, excluded_colors, color_map_mode, element_color_mode,
+            hsv_shift, max_attempts=1000, result_only=False)
 
 
 #! Showing and saving results

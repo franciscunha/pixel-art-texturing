@@ -23,6 +23,7 @@ def texture(
     color_map_mode: str = "border",
     element_color_mode: str = "region",
     hsv_shift: tuple[int, int, int] | None = None,
+    max_attempts: int = 1000,
     result_only: bool = True,
 ):
     # TODO change structure and terminology to reflect paper
@@ -61,8 +62,8 @@ def texture(
 
     pattern_shape = patterns.shape[2:4]
     positions = pattern_positions(
-        mask, pattern_shape, placement_mode,
-        allow_partly_in_mask, pattern_padding, density)
+        mask, pattern_shape, placement_mode, allow_partly_in_mask,
+        pattern_padding, density, max_attempts)
 
     #! Placement
 

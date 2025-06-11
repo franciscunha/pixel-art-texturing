@@ -37,7 +37,7 @@ def pattern_positions(
 
     positions_to_try = [valid_positions[start_idx]]
 
-    while attempts < max_attempts and valid_positions:
+    while attempts < max_attempts and (valid_positions or positions_to_try):
         attempts += 1
 
         if not positions_to_try:
