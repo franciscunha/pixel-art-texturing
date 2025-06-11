@@ -7,7 +7,7 @@ from src.visualizations import save_scaled, show_scaled, visualize_annotations, 
 
 # Params for animal:
 # boundary_mask_padding = 2
-# pattern_padding = (-3, -3)
+# element_padding = (-3, -3)
 # allow_partly_in_mask = False
 # placement_mode = "sampling"
 # color_map_mode = "border"
@@ -16,8 +16,8 @@ from src.visualizations import save_scaled, show_scaled, visualize_annotations, 
 
 #! Params
 
-source_file = "data/bases/trunk/trunk_unpatterned.png"
-pattern_sheet_file = "data/pattern_sheet/large_squares.png"
+source_file = "data/bases/trunk/trunk_unelemented.png"
+element_sheet_file = "data/element_sheet/large_squares.png"
 boundary_file = "data/boundaries/examples/blob.png"
 
 # Output
@@ -39,7 +39,7 @@ placement_mode = "sampling"
 allow_partly_in_mask = False
 
 # Density
-pattern_padding = (0, 0)
+element_padding = (0, 0)
 density = 1
 
 # Coloring
@@ -67,14 +67,14 @@ show_color_map = False
 #! Loading images
 
 source = cv2.imread(source_file, cv2.IMREAD_UNCHANGED)
-pattern_sheet = cv2.imread(pattern_sheet_file, cv2.IMREAD_UNCHANGED)
+element_sheet = cv2.imread(element_sheet_file, cv2.IMREAD_UNCHANGED)
 
 if boundary_file is None:
     boundary = np.full_like(source, 255)
 else:
     boundary = cv2.imread(boundary_file, cv2.IMREAD_UNCHANGED)
 
-if source is None or pattern_sheet is None or boundary is None:
+if source is None or element_sheet is None or boundary is None:
     raise FileNotFoundError()
 
 
@@ -84,14 +84,14 @@ result, mask, colors, annotations, vector_field, positions =\
     texture(
         # Input
         source,
-        pattern_sheet,
+        element_sheet,
         boundary,
         # Parameters
         density,
         placement_mode,
         allow_partly_in_mask,
         boundary_mask_padding,
-        pattern_padding,
+        element_padding,
         scale,
         excluded_colors,
         color_map_mode,

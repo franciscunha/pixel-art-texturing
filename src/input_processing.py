@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 
-# Patterns
+# Elements
 
 def split_oriented_spritesheet(img: cv2.Mat):
     """

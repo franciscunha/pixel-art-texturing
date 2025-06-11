@@ -4,19 +4,19 @@ import numpy as np
 from orientation import orientations
 from color import color_map
 from placement import place_elements
-from position import pattern_positions
+from position import element_positions
 from input_processing import mask_bb, mask_from_boundary, pad_mask, split_oriented_spritesheet
 
 
 def texture(
     source: cv2.Mat,
-    pattern_sheet: np.ndarray,
+    element_sheet: np.ndarray,
     boundary: cv2.Mat,
     density: float = 1.0,
     placement_mode: str = "sampling",
     allow_partly_in_mask: bool = False,
     boundary_mask_padding: int = 0,
-    pattern_padding: tuple[int, int] = (0, 0),  # x, y
+    element_padding: tuple[int, int] = (0, 0),  # x, y
     annotation_img_scale: int = 1,
     excluded_colors: np.ndarray = [],
     color_map_mode: str = "border",
@@ -25,14 +25,12 @@ def texture(
     max_attempts: int = 1000,
     result_only: bool = True,
 ):
-    # TODO change terminology to reflect paper
-
     if boundary.shape != source.shape:
         raise ValueError("Boundary has to be the same size as source")
 
     #! Process input
 
-    patterns = split_oriented_spritesheet(pattern_sheet)
+    elements = split_oriented_spritesheet(element_sheet)
     mask = pad_mask(mask_from_boundary(boundary), boundary_mask_padding)
 
     # TODO handle everything only inside bb
@@ -57,14 +55,14 @@ def texture(
 
     #! Positions
 
-    pattern_shape = patterns.shape[2:4]
+    element_shape = elements.shape[2:4]
 
-    positions = pattern_positions(
+    positions = element_positions(
         mask,
-        pattern_shape,
+        element_shape,
         placement_mode,
         allow_partly_in_mask,
-        pattern_padding,
+        element_padding,
         density,
         max_attempts
     )
@@ -73,7 +71,7 @@ def texture(
 
     result = place_elements(
         source,
-        patterns,
+        elements,
         mask,
         positions,
         colors,
