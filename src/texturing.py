@@ -1,11 +1,11 @@
 import cv2
 import numpy as np
 
-from orientation import orientations
-from color import color_map
-from placement import place_elements
-from position import element_positions
-from input_processing import mask_bb, mask_from_boundary, pad_mask, split_oriented_spritesheet
+from src.color import color_map
+from src.placement import place_elements
+from src.position import element_positions
+from src.input_processing import mask_bb, mask_from_boundary, pad_mask, split_oriented_spritesheet
+from src.orientation.orientation import orientations
 
 
 def texture(

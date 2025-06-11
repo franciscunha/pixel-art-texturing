@@ -1,6 +1,6 @@
-from diffusion import diffuse_vector_field
-from vectors import compress_vector_field
-from user_annotation import draw_on_image, parse_curves
+from src.orientation.diffusion import diffuse_vector_field
+from src.orientation.vectors import compress_vector_field
+from src.orientation.user_annotation import draw_on_image, parse_curves
 
 
 def orientations(img, scale):

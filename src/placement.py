@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
 
-from color import mode_color
-from orientation.vectors import area_vector, quantize_direction
+from src.color import mode_color
+from src.orientation.vectors import area_vector, quantize_direction
 
 
 def find_element(

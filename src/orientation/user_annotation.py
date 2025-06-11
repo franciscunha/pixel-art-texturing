@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from vectors import average_vector
+from src.orientation.vectors import average_vector
 from src.orientation.drawing import draw_arrow
 
 
