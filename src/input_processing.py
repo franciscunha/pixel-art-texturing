@@ -2,6 +2,41 @@ import cv2
 import numpy as np
 
 
+def read_files(source_file: str, element_sheet_file: str, boundary_file: str | None):
+
+    source = cv2.imread(source_file, cv2.IMREAD_UNCHANGED)
+    element_sheet = cv2.imread(element_sheet_file, cv2.IMREAD_UNCHANGED)
+
+    if boundary_file is None:
+        boundary = np.full_like(source, 255)
+    else:
+        boundary = cv2.imread(boundary_file, cv2.IMREAD_UNCHANGED)
+
+    if source is None or element_sheet is None or boundary is None:
+        raise FileNotFoundError()
+
+    return source, element_sheet, boundary
+
+
+def process_input(
+    element_sheet: np.ndarray,
+    boundary: cv2.Mat,
+    source_shape,
+    boundary_mask_padding: int = 0,
+
+):
+    if boundary.shape != source_shape:
+        raise ValueError("Boundary has to be the same size as source")
+
+    elements = split_oriented_spritesheet(element_sheet)
+    mask = pad_mask(mask_from_boundary(boundary), boundary_mask_padding)
+
+    # TODO handle everything only inside bb
+    bb = mask_bb(mask)
+
+    return elements, mask, bb
+
+
 # Elements
 
 def split_oriented_spritesheet(img: cv2.Mat):

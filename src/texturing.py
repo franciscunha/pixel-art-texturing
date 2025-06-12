@@ -4,20 +4,41 @@ import numpy as np
 from src.color import color_map
 from src.placement import place_elements
 from src.position import element_positions
-from src.input_processing import mask_bb, mask_from_boundary, pad_mask, split_oriented_spritesheet
+from src.input_processing import process_input, read_files
 from src.orientation.orientation import orientations
+
+
+def annotate(
+    source_file: str,
+    element_sheet_file: str,
+    boundary_file: str,
+    boundary_mask_padding=0,
+    annotation_scale=1
+):
+    # Process input
+
+    source, element_sheet, boundary = read_files(
+        source_file, element_sheet_file, boundary_file)
+
+    elements, mask, bb = process_input(
+        element_sheet, boundary, source.shape, boundary_mask_padding)
+
+    # Annotate
+
+    vector_field, annotations = orientations(source, annotation_scale)
+
+    return source, elements, mask, bb, vector_field, annotations
 
 
 def texture(
     source: cv2.Mat,
-    element_sheet: np.ndarray,
-    boundary: cv2.Mat,
+    mask: np.ndarray,
+    elements: np.ndarray,
+    vector_field: np.ndarray,
     density: float = 1.0,
     placement_mode: str = "sampling",
     allow_partly_in_mask: bool = False,
-    boundary_mask_padding: int = 0,
     element_padding: tuple[int, int] = (0, 0),  # x, y
-    annotation_img_scale: int = 1,
     excluded_colors: np.ndarray = [],
     color_map_mode: str = "border",
     element_color_mode: str = "region",
@@ -25,21 +46,6 @@ def texture(
     max_attempts: int = 1000,
     result_only: bool = True,
 ):
-    if boundary.shape != source.shape:
-        raise ValueError("Boundary has to be the same size as source")
-
-    #! Process input
-
-    elements = split_oriented_spritesheet(element_sheet)
-    mask = pad_mask(mask_from_boundary(boundary), boundary_mask_padding)
-
-    # TODO handle everything only inside bb
-    bb = mask_bb(mask)
-
-    #! Vector field
-
-    vector_field, annotations = orientations(source, annotation_img_scale)
-
     #! Coloring
 
     if color_map_mode == "hsv" and hsv_shift is None:
@@ -84,4 +90,5 @@ def texture(
     if result_only:
         return result
 
-    return result, mask, colors, annotations, vector_field, positions
+    # return result, mask, colors, annotations, vector_field, positions
+    return result, colors, positions
