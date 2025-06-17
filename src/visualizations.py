@@ -9,13 +9,13 @@ from src.orientation.vectors import compress_vector_field
 # Scaling helpers
 
 def show_scaled(title: str, img: cv2.Mat, factor: int):
-    scaled = cv2.resize(img, dsize=None, fx=factor,
+    scaled = cv2.resize(img.copy(), dsize=None, fx=factor,
                         fy=factor, interpolation=cv2.INTER_NEAREST)
     cv2.imshow(title, scaled)
 
 
 def save_scaled(filepath: str, img: cv2.Mat, factor: int):
-    scaled = cv2.resize(img, dsize=None, fx=factor,
+    scaled = cv2.resize(img.copy(), dsize=None, fx=factor,
                         fy=factor, interpolation=cv2.INTER_NEAREST)
     cv2.imwrite(filepath, scaled)
 

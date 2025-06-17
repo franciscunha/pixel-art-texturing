@@ -40,15 +40,17 @@ def texture(
     allow_partly_in_mask: bool = False,
     element_padding: tuple[int, int] = (0, 0),  # x, y
     excluded_colors: np.ndarray = [],
-    color_map_mode: str = "border",
+    color_map_mode: str = "auto",
     element_color_mode: str = "region",
+    max_color_distance: float | None = 10,
     hsv_shift: tuple[int, int, int] | None = None,
     max_attempts: int = 1000,
     result_only: bool = True,
 ):
     #! Coloring
 
-    if color_map_mode == "hsv" and hsv_shift is None:
+    if (color_map_mode == "hsv" or color_map_mode == "auto") \
+            and hsv_shift is None:
         raise ValueError("Specify an HSV shift value for HSV color map mode")
 
     colors = color_map(
@@ -56,6 +58,7 @@ def texture(
         mask,
         exclude=excluded_colors,
         type=color_map_mode,
+        max_distance=max_color_distance,
         hsv_shift=hsv_shift
     )
 

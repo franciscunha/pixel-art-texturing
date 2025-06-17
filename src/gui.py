@@ -4,7 +4,6 @@ import cv2
 import numpy as np
 import threading
 
-from src.orientation.orientation import orientations
 from src.texturing import annotate, texture
 from src.visualizations import save_scaled, show_scaled
 
@@ -37,13 +36,15 @@ class ParameterGUI:
         self.element_padding_x = tk.IntVar(value=0)
         self.element_padding_y = tk.IntVar(value=0)
         self.scale = tk.IntVar(value=4)
-        self.excluded_colors = []
-        self.color_map_mode = tk.StringVar(value="similarity")
+        # Default black color
+        self.excluded_colors = [np.array([0, 0, 0, 255])]
+        self.color_map_mode = tk.StringVar(value="auto")
         self.element_color_mode = tk.StringVar(value="region")
         self.hsv_shift_h = tk.IntVar(value=0)
         self.hsv_shift_s = tk.IntVar(value=0)
         self.hsv_shift_v = tk.IntVar(value=-76)
         self.max_attempts = tk.IntVar(value=1000)
+        self.max_color_distance = tk.DoubleVar(value=70.0)
         self.source_file = tk.StringVar(value="")
         self.boundary_file = tk.StringVar(value="")
         self.element_sheet_file = tk.StringVar(value="")
@@ -144,11 +145,14 @@ class ParameterGUI:
         self.excluded_colors_listbox.grid(
             row=8, column=0, columnspan=3, sticky="ew", padx=5, pady=2)
 
+        # Add default excluded color to listbox
+        self.excluded_colors_listbox.insert(tk.END, "BGRA: [0, 0, 0, 255]")
+
         # Color Map Mode
         ttk.Label(scrollable_frame, text="Color Map Mode:").grid(
             row=9, column=0, sticky="w", padx=5, pady=2)
         ttk.Combobox(scrollable_frame, textvariable=self.color_map_mode, values=[
-                     "border", "hsv", "similarity"], state="readonly").grid(row=9, column=1, padx=5, pady=2)
+                     "border", "hsv", "similarity", "auto"], state="readonly").grid(row=9, column=1, padx=5, pady=2)
 
         # Element Color Mode
         ttk.Label(scrollable_frame, text="Element Color Mode:").grid(
@@ -193,11 +197,17 @@ class ParameterGUI:
         ttk.Entry(scrollable_frame, textvariable=self.max_attempts, width=10).grid(
             row=14, column=1, sticky="w", padx=5, pady=2)
 
+        # Max Color Distance
+        ttk.Label(scrollable_frame, text="Max Color Distance:").grid(
+            row=15, column=0, sticky="w", padx=5, pady=2)
+        ttk.Entry(scrollable_frame, textvariable=self.max_color_distance, width=10).grid(
+            row=15, column=1, sticky="w", padx=5, pady=2)
+
         # File paths
         ttk.Label(scrollable_frame, text="Source File:").grid(
-            row=15, column=0, sticky="w", padx=5, pady=2)
+            row=16, column=0, sticky="w", padx=5, pady=2)
         file_frame1 = ttk.Frame(scrollable_frame)
-        file_frame1.grid(row=15, column=1, columnspan=2,
+        file_frame1.grid(row=16, column=1, columnspan=2,
                          sticky="ew", padx=5, pady=2)
         ttk.Entry(file_frame1, textvariable=self.source_file,
                   width=30).pack(side="left", padx=2)
@@ -205,9 +215,9 @@ class ParameterGUI:
             self.source_file)).pack(side="left", padx=2)
 
         ttk.Label(scrollable_frame, text="Boundary File:").grid(
-            row=16, column=0, sticky="w", padx=5, pady=2)
+            row=17, column=0, sticky="w", padx=5, pady=2)
         file_frame2 = ttk.Frame(scrollable_frame)
-        file_frame2.grid(row=16, column=1, columnspan=2,
+        file_frame2.grid(row=17, column=1, columnspan=2,
                          sticky="ew", padx=5, pady=2)
         ttk.Entry(file_frame2, textvariable=self.boundary_file,
                   width=30).pack(side="left", padx=2)
@@ -217,9 +227,9 @@ class ParameterGUI:
             "")).pack(side="left", padx=2)
 
         ttk.Label(scrollable_frame, text="Element Sheet File:").grid(
-            row=17, column=0, sticky="w", padx=5, pady=2)
+            row=18, column=0, sticky="w", padx=5, pady=2)
         file_frame3 = ttk.Frame(scrollable_frame)
-        file_frame3.grid(row=17, column=1, columnspan=2,
+        file_frame3.grid(row=18, column=1, columnspan=2,
                          sticky="ew", padx=5, pady=2)
         ttk.Entry(file_frame3, textvariable=self.element_sheet_file,
                   width=30).pack(side="left", padx=2)
@@ -228,7 +238,7 @@ class ParameterGUI:
 
         # Action buttons
         button_frame = ttk.Frame(scrollable_frame)
-        button_frame.grid(row=18, column=0, columnspan=3, pady=20)
+        button_frame.grid(row=19, column=0, columnspan=3, pady=20)
 
         ttk.Button(button_frame, text="Annotate",
                    command=self.annotate_action, width=15).pack(side="left", padx=5)
@@ -237,7 +247,7 @@ class ParameterGUI:
 
         # Display buttons
         display_frame = ttk.Frame(scrollable_frame)
-        display_frame.grid(row=19, column=0, columnspan=3, pady=10)
+        display_frame.grid(row=20, column=0, columnspan=3, pady=10)
 
         ttk.Button(display_frame, text="Show Color Map",
                    command=self.show_color_map, width=12).pack(side="left", padx=3)
@@ -301,6 +311,7 @@ class ParameterGUI:
             'element_color_mode': self.element_color_mode.get(),
             'hsv_shift': (self.hsv_shift_h.get(), self.hsv_shift_s.get(), self.hsv_shift_v.get()),
             'max_attempts': self.max_attempts.get(),
+            'max_color_distance': self.max_color_distance.get(),
             'source_file': self.source_file.get() if self.source_file.get() else None,
             'boundary_file': self.boundary_file.get() if self.boundary_file.get() else None,
             'element_sheet_file': self.element_sheet_file.get() if self.element_sheet_file.get() else None
@@ -350,15 +361,16 @@ class ParameterGUI:
                         self.mask,
                         self.elements,
                         self.vector_field,
-                        params['density'],
-                        params['placement_mode'],
-                        params['allow_partly_in_mask'],
-                        params['element_padding'],
-                        params['excluded_colors'],
-                        params['color_map_mode'],
-                        params['element_color_mode'],
-                        params['hsv_shift'],
-                        params['max_attempts'],
+                        density=params["density"],
+                        placement_mode=params["placement_mode"],
+                        allow_partly_in_mask=params["allow_partly_in_mask"],
+                        element_padding=params["element_padding"],
+                        excluded_colors=params["excluded_colors"],
+                        color_map_mode=params["color_map_mode"],
+                        element_color_mode=params["element_color_mode"],
+                        max_color_distance=params["max_color_distance"],
+                        hsv_shift=params["hsv_shift"],
+                        max_attempts=params["max_attempts"],
                         result_only=False
                     )
 
@@ -383,6 +395,7 @@ class ParameterGUI:
                 try:
                     params = self.get_parameters()
                     show_scaled("Color Map", self.colors, params['scale'])
+                    cv2.waitKey(0)
                 except Exception as e:
                     self.root.after(0, lambda: messagebox.showerror(
                         "Error", f"Error displaying color map: {str(e)}"))
@@ -400,6 +413,7 @@ class ParameterGUI:
                     mask_img = cv2.bitwise_and(
                         self.source, self.source, mask=self.mask.astype(np.uint8))
                     show_scaled("Mask", mask_img, params['scale'])
+                    cv2.waitKey(0)
                 except Exception as e:
                     self.root.after(0, lambda: messagebox.showerror(
                         "Error", f"Error displaying mask: {str(e)}"))
@@ -415,6 +429,7 @@ class ParameterGUI:
                 try:
                     params = self.get_parameters()
                     show_scaled("Result", self.result, params['scale'])
+                    cv2.waitKey(0)
                 except Exception as e:
                     self.root.after(0, lambda: messagebox.showerror(
                         "Error", f"Error displaying result: {str(e)}"))
@@ -507,5 +522,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# TODO allow saving preset parameters
