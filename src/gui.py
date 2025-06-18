@@ -51,6 +51,10 @@ class ParameterGUI:
         self.boundary_file = tk.StringVar(value="")
         self.element_sheet_file = tk.StringVar(value="")
 
+        # Store button references for state updates
+        self.display_buttons = {}
+        self.save_buttons = {}
+
         self.create_widgets()
 
     def create_widgets(self):
@@ -251,27 +255,49 @@ class ParameterGUI:
         display_frame = ttk.Frame(scrollable_frame)
         display_frame.grid(row=20, column=0, columnspan=3, pady=10)
 
-        ttk.Button(display_frame, text="Show Color Map",
-                   command=self.show_color_map, width=15).pack(side="left", padx=3)
-        ttk.Button(display_frame, text="Show Positions",
-                   command=self.show_positions, width=15).pack(side="left", padx=3)
-        ttk.Button(display_frame, text="Show Mask",
-                   command=self.show_mask, width=15).pack(side="left", padx=3)
-        ttk.Button(display_frame, text="Show Result",
-                   command=self.show_result, width=15).pack(side="left", padx=3)
+        self.display_buttons['color_map'] = ttk.Button(display_frame, text="Show Color Map",
+                                                       state="disabled",
+                                                       command=self.show_color_map, width=15)
+        self.display_buttons['color_map'].pack(side="left", padx=3)
+
+        self.display_buttons['positions'] = ttk.Button(display_frame, text="Show Positions",
+                                                       state="disabled",
+                                                       command=self.show_positions, width=15)
+        self.display_buttons['positions'].pack(side="left", padx=3)
+
+        self.display_buttons['mask'] = ttk.Button(display_frame, text="Show Mask",
+                                                  state="disabled",
+                                                  command=self.show_mask, width=15)
+        self.display_buttons['mask'].pack(side="left", padx=3)
+
+        self.display_buttons['result'] = ttk.Button(display_frame, text="Show Result",
+                                                    state="disabled",
+                                                    command=self.show_result, width=15)
+        self.display_buttons['result'].pack(side="left", padx=3)
 
         # Save buttons
         save_frame = ttk.Frame(scrollable_frame)
         save_frame.grid(row=21, column=0, columnspan=3, pady=10)
 
-        ttk.Button(save_frame, text="Save Color Map",
-                   command=self.save_color_map, width=15).pack(side="left", padx=5)
-        ttk.Button(save_frame, text="Save Positions",
-                   command=self.save_positions, width=15).pack(side="left", padx=5)
-        ttk.Button(save_frame, text="Save Mask",
-                   command=self.save_mask, width=15).pack(side="left", padx=5)
-        ttk.Button(save_frame, text="Save Result",
-                   command=self.save_result, width=15).pack(side="left", padx=5)
+        self.save_buttons['color_map'] = ttk.Button(save_frame, text="Save Color Map",
+                                                    state="disabled",
+                                                    command=self.save_color_map, width=15)
+        self.save_buttons['color_map'].pack(side="left", padx=5)
+
+        self.save_buttons['positions'] = ttk.Button(save_frame, text="Save Positions",
+                                                    state="disabled",
+                                                    command=self.save_positions, width=15)
+        self.save_buttons['positions'].pack(side="left", padx=5)
+
+        self.save_buttons['mask'] = ttk.Button(save_frame, text="Save Mask",
+                                               state="disabled",
+                                               command=self.save_mask, width=15)
+        self.save_buttons['mask'].pack(side="left", padx=5)
+
+        self.save_buttons['result'] = ttk.Button(save_frame, text="Save Result",
+                                                 state="disabled",
+                                                 command=self.save_result, width=15)
+        self.save_buttons['result'].pack(side="left", padx=5)
 
         # Configure scrollable area
         canvas.pack(side="left", fill="both", expand=True)
@@ -279,6 +305,28 @@ class ParameterGUI:
 
         # Configure grid weights
         scrollable_frame.columnconfigure(1, weight=1)
+
+    def update_button_states(self):
+        """Update the state of all buttons based on available data"""
+        # Update color map buttons
+        color_map_state = "normal" if self.colors is not None else "disabled"
+        self.display_buttons['color_map'].configure(state=color_map_state)
+        self.save_buttons['color_map'].configure(state=color_map_state)
+
+        # Update positions buttons
+        positions_state = "normal" if self.positions_vis is not None else "disabled"
+        self.display_buttons['positions'].configure(state=positions_state)
+        self.save_buttons['positions'].configure(state=positions_state)
+
+        # Update mask buttons
+        mask_state = "normal" if self.mask is not None else "disabled"
+        self.display_buttons['mask'].configure(state=mask_state)
+        self.save_buttons['mask'].configure(state=mask_state)
+
+        # Update result buttons
+        result_state = "normal" if self.result is not None else "disabled"
+        self.display_buttons['result'].configure(state=result_state)
+        self.save_buttons['result'].configure(state=result_state)
 
     def add_excluded_color(self):
         color = colorchooser.askcolor(title="Choose excluded color")
@@ -345,6 +393,9 @@ class ParameterGUI:
                 self.vector_field = vector_field
                 self.annotations = annotations
 
+                # Update button states on the main thread
+                self.root.after(0, self.update_button_states)
+
             except Exception as e:
                 # Handle errors gracefully
                 self.root.after(0, lambda: messagebox.showerror(
@@ -385,6 +436,9 @@ class ParameterGUI:
                 self.positions = positions
                 self.positions_vis = visualize_positions(
                     self.source, positions)
+
+                # Update button states on the main thread
+                self.root.after(0, self.update_button_states)
 
                 show_scaled("Output", result, params['scale'])
                 cv2.waitKey(0)
