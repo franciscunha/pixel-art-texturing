@@ -534,7 +534,7 @@ class ParameterGUI:
         )
         if filename:
             try:
-                save_scaled(filename, self.result, self.scale)
+                save_scaled(filename, self.result, self.scale.get())
                 messagebox.showinfo(
                     "Success", f"Result image saved to {filename}")
             except Exception as e:
@@ -559,7 +559,7 @@ class ParameterGUI:
         )
         if filename:
             try:
-                save_scaled(filename, self.colors, self.scale)
+                save_scaled(filename, self.colors, self.scale.get())
                 messagebox.showinfo(
                     "Success", f"Color map saved to {filename}")
             except Exception as e:
@@ -583,7 +583,7 @@ class ParameterGUI:
         )
         if filename:
             try:
-                save_scaled(filename, self.positions_vis, self.scale)
+                save_scaled(filename, self.positions_vis, self.scale.get())
                 messagebox.showinfo(
                     "Success", f"Positions saved to {filename}")
             except Exception as e:
@@ -610,7 +610,7 @@ class ParameterGUI:
             try:
                 mask_img = cv2.bitwise_and(
                     self.source, self.source, mask=self.mask.astype(np.uint8))
-                save_scaled(filename, mask_img, self.scale)
+                save_scaled(filename, mask_img, self.scale.get())
                 messagebox.showinfo("Success", f"Mask saved to {filename}")
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to save mask: {str(e)}")
