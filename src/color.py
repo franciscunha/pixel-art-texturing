@@ -281,7 +281,7 @@ def color_map_auto(
         return map
 
     # If jumps are too large, use color difference
-    print(f"Using color difference, distances were: {distances}")
+    print(f"Using color difference")
     return color_map_by_similarity(image, mask, exclude)
 
 

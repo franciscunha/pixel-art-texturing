@@ -5,14 +5,14 @@ import numpy as np
 import threading
 
 from src.texturing import annotate, texture
-from src.visualizations import save_scaled, show_scaled
+from src.visualizations import save_scaled, show_scaled, visualize_positions
 
 
 class ParameterGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Parameter Configuration")
-        self.root.geometry("600x900")
+        self.root.geometry("600x800")
 
         # Initialize variables
 
@@ -27,6 +27,8 @@ class ParameterGUI:
         self.colors = None
         self.positions = None
         self.result = None  # Added to store the result image
+
+        self.positions_vis = None
 
         # Parameters
         self.density = tk.DoubleVar(value=1.0)
@@ -250,22 +252,26 @@ class ParameterGUI:
         display_frame.grid(row=20, column=0, columnspan=3, pady=10)
 
         ttk.Button(display_frame, text="Show Color Map",
-                   command=self.show_color_map, width=12).pack(side="left", padx=3)
+                   command=self.show_color_map, width=15).pack(side="left", padx=3)
+        ttk.Button(display_frame, text="Show Positions",
+                   command=self.show_positions, width=15).pack(side="left", padx=3)
         ttk.Button(display_frame, text="Show Mask",
-                   command=self.show_mask, width=12).pack(side="left", padx=3)
+                   command=self.show_mask, width=15).pack(side="left", padx=3)
         ttk.Button(display_frame, text="Show Result",
-                   command=self.show_result, width=12).pack(side="left", padx=3)
+                   command=self.show_result, width=15).pack(side="left", padx=3)
 
         # Save buttons
         save_frame = ttk.Frame(scrollable_frame)
         save_frame.grid(row=21, column=0, columnspan=3, pady=10)
 
-        ttk.Button(save_frame, text="Save Result",
-                   command=self.save_result, width=15).pack(side="left", padx=5)
         ttk.Button(save_frame, text="Save Color Map",
                    command=self.save_color_map, width=15).pack(side="left", padx=5)
+        ttk.Button(save_frame, text="Save Positions",
+                   command=self.save_positions, width=15).pack(side="left", padx=5)
         ttk.Button(save_frame, text="Save Mask",
                    command=self.save_mask, width=15).pack(side="left", padx=5)
+        ttk.Button(save_frame, text="Save Result",
+                   command=self.save_result, width=15).pack(side="left", padx=5)
 
         # Configure scrollable area
         canvas.pack(side="left", fill="both", expand=True)
@@ -377,6 +383,8 @@ class ParameterGUI:
                 self.result = result  # Store the result
                 self.colors = colors
                 self.positions = positions
+                self.positions_vis = visualize_positions(
+                    self.source, positions)
 
                 show_scaled("Output", result, params['scale'])
                 cv2.waitKey(0)
@@ -403,6 +411,22 @@ class ParameterGUI:
         else:
             messagebox.showwarning(
                 "Warning", "No color map available. Run Texture first.")
+
+    def show_positions(self):
+        if self.positions_vis is not None:
+            def display():
+                try:
+                    params = self.get_parameters()
+                    show_scaled("Positions", self.positions_vis,
+                                params['scale'])
+                    cv2.waitKey(0)
+                except Exception as e:
+                    self.root.after(0, lambda: messagebox.showerror(
+                        "Error", f"Error displaying positions: {str(e)}"))
+            threading.Thread(target=display, daemon=True).start()
+        else:
+            messagebox.showwarning(
+                "Warning", "No positions available. Run Texture first.")
 
     def show_mask(self):
         """Display the mask using show_scaled"""
@@ -487,6 +511,30 @@ class ParameterGUI:
             except Exception as e:
                 messagebox.showerror(
                     "Error", f"Failed to save color map: {str(e)}")
+
+    def save_positions(self):
+        if self.positions_vis is None:
+            messagebox.showwarning(
+                "Warning", "No positions available. Run Texture first.")
+            return
+
+        filename = filedialog.asksaveasfilename(
+            title="Save Positions",
+            defaultextension=".png",
+            filetypes=[
+                ("PNG files", "*.png"),
+                ("JPEG files", "*.jpg"),
+                ("All files", "*.*")
+            ]
+        )
+        if filename:
+            try:
+                save_scaled(filename, self.positions_vis, self.scale)
+                messagebox.showinfo(
+                    "Success", f"Positions saved to {filename}")
+            except Exception as e:
+                messagebox.showerror(
+                    "Error", f"Failed to save positions: {str(e)}")
 
     def save_mask(self):
         """Save the mask image to disk"""
