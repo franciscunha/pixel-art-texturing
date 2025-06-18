@@ -46,23 +46,13 @@ def visualize_annotations(annotations, grid_scale, cell_size):
 
 def visualize_positions(source, positions):
     red = np.array([0, 0, 255, 255])
-    max_x, max_y = source.shape[:2]
-    min_x, min_y = 0, 0
 
     result = source.copy()
     for position in positions:
         x, y = position
 
-        # Draw a red + at position
-        result[x, y] = red
-        if y < max_y - 1:
-            result[x, y+1] = red
-        if y > min_y:
-            result[x, y-1] = red
-        if x < max_x - 1:
-            result[x+1, y] = red
-        if x > min_x:
-            result[x-1, y] = red
+        # Draw a red pixel at center of where element would be
+        result[y+1, x+1] = red
 
     return result
 
